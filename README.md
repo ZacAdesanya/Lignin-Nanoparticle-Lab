@@ -1,17 +1,13 @@
 # Lignin Nanoparticle Lab
 
-![screenshot](docs/screenshot.png)
 
 An interactive population-balance model of lignin nanoparticle (LNP) formation and breakup by
 **antisolvent addition**, **dilute-H2SO4 acid precipitation** and **sonication**, with DLS-comparable
-Z-average and PDI. UIC colors. One self-contained file, no server or internet needed.
+Z-average and PDI using Population Balance Modeling.
 
-**Live demo (after enabling GitHub Pages on `main` / root):** `https://<user>.github.io/lignin-nanoparticle-lab/`
-**Archive DOI:** add after the Zenodo release.
 
 ## Use it
-Open `index.html` in any modern browser. Pick a solvent (33 built in: 13 classical solvents/amines plus
-acetate and nitrate protic ionic liquids of eight amines), set lignin and process parameters, press Replay.
+Pick a solvent (33 built in: 13 classical solvents/amines plus acetate and nitrate protic ionic liquids of eight amines), set lignin and process parameters, press Replay.
 
 ## What is in the model
 Sectional population balance on 56 size bins (1.5 nm to about 3 um): classical nucleation, diffusion-limited
