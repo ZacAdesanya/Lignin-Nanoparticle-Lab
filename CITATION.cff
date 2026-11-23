@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Lignin Nanoparticle Lab: a population-balance model of lignin nanoparticle formation and breakup"
+version: 1.0.0
+date-released: 2026-11-23
+license: MIT
+type: software
+authors:
+  - family-names: Adesanya
+    given-names: Taiwo Zacchaeus
+    affiliation: "University of Illinois Chicago"
+abstract: >-
+  Interactive browser model of lignin nanoparticle (LNP) formation by antisolvent
+  addition, dilute-H2SO4 acid precipitation and sonication. Sectional population balance
+  (nucleation, diffusion-limited growth, DLVO aggregation, stress-based breakage,
+  engulfment micromixing) with DLS-comparable Z-average and PDI outputs.
+keywords:
+  - lignin nanoparticles
+  - population balance
+  - antisolvent precipitation
+  - COSMO-RS
+  - protic ionic liquids
+  - DLS

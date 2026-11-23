@@ -1,0 +1,10 @@
+{
+  "title": "Lignin Nanoparticle Lab: a population-balance model of lignin nanoparticle formation and breakup",
+  "upload_type": "software",
+  "description": "Interactive, self-contained browser model (single HTML file, no dependencies) and Python reference implementation of lignin nanoparticle formation by antisolvent addition, dilute-H2SO4 acid precipitation and sonication. Sectional population balance with CNT nucleation, diffusion-limited growth, DLVO-limited aggregation, stress-based breakage and engulfment micromixing; outputs DLS-comparable Z-average and PDI. Solubility enters through openCOSMO-RS transfer free energies where supplied, with Hansen-parameter fallback and estimated properties for protic ionic liquids (flagged 'est'). Screening-level model: validate against DLS.",
+  "creators": [{"name": "Adesanya, Taiwo Zacchaeus", "affiliation": "University of Illinois Chicago"}],
+  "license": "MIT",
+  "version": "1.0.0",
+  "keywords": ["lignin nanoparticles", "population balance", "antisolvent precipitation", "COSMO-RS", "protic ionic liquids", "dynamic light scattering"],
+  "access_right": "open"
+}

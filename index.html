@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lignin Nanoparticle Lab</title>
+<style>
+/* Layout idea: instrument-panel sidebar on the left, one live specimen view above four diagnostic charts.
+   UIC palette: flame red = lignin, UIC navy = antisolvent (water). */
+:root {
+  --bg: #f1f2f6; --panel: #ffffff; --panel2: #f6f7fa; --ink: #0f1a33; --muted: #566077; --line: #d6d9e3; --uic-navy: #001e62; --uic-red: #d50032;
+  --lig: #d50032; --lig-soft: #f7cdd6; --water: #001e62; --water-soft: #d2daee;
+  --good: #1f7a4d; --warn: #9a6200; --bad: #8f1d1d; --focus: #d50032;
+  --font: "Montserrat", "Segoe UI", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070d1f; --panel: #0e1630; --panel2: #141e3d; --ink: #e8ecf6; --muted: #9aa6c4; --line: #26325a; --uic-navy: #001e62; --uic-red: #d50032;
+    --lig: #ff5c7c; --lig-soft: #5a1a2b; --water: #7fa4ff; --water-soft: #1a2c5e;
+    --good: #52c68a; --warn: #e0a23a; --bad: #ff8a8a; --focus: #ff5c7c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #070d1f; --panel: #0e1630; --panel2: #141e3d; --ink: #e8ecf6; --muted: #9aa6c4; --line: #26325a; --uic-navy: #001e62; --uic-red: #d50032;
+  --lig: #ff5c7c; --lig-soft: #5a1a2b; --water: #7fa4ff; --water-soft: #1a2c5e;
+  --good: #52c68a; --warn: #e0a23a; --bad: #ff8a8a; --focus: #ff5c7c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); }
+body { padding: 0 0 40px; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 4px solid var(--uic-red); background: var(--uic-navy); color: #fff; }
+.top h1 { font-size: 18px; letter-spacing: .01em; }
+.top p { margin: 2px 0 0; color: #c9d2ea; font-size: 12.5px; }
+.tabs { display: inline-flex; border: 1px solid #5a6ca3; border-radius: 8px; overflow: hidden; }
+.tabs button { border: 0; background: transparent; padding: 8px 14px; cursor: pointer; color: #dfe5f5; }
+.tabs button[aria-pressed="true"] { background: var(--uic-red); color: #fff; }
+.app { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; padding: 16px 20px; max-width: 1640px; margin: 0 auto; }
+@media (max-width: 1020px) { .app { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; } }
+.side { display: flex; flex-direction: column; gap: 10px; align-self: start; }
+@media (min-width: 1021px) { .side { max-height: calc(100vh - 90px); overflow: auto; position: sticky; top: 8px; padding-right: 4px; } }
+details.card, section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+details.card > summary { cursor: pointer; padding: 10px 14px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.card > summary::after { content: "+"; color: var(--muted); font-family: var(--mono); }
+details.card[open] > summary::after { content: "\2212"; }
+details.card > .body { padding: 2px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.f { display: grid; grid-template-columns: 1fr 96px; gap: 8px; align-items: center; }
+.f label { color: var(--muted); font-size: 12.5px; }
+.f label small { display: block; color: var(--muted); opacity: .8; font-size: 11px; }
+.f input[type=number], .f select, select.full, textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; font-family: var(--mono); font-size: 12.5px; }
+select.full { font-family: var(--font); font-size: 13.5px; padding: 7px 8px; }
+textarea { min-height: 84px; resize: vertical; }
+.f2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.f2 label { display: block; font-size: 11.5px; color: var(--muted); }
+.f2 input { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font-family: var(--mono); font-size: 12.5px; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+.badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel2); color: var(--muted); }
+.badge.good { color: var(--good); border-color: currentColor; } .badge.warn { color: var(--warn); border-color: currentColor; } .badge.bad { color: var(--bad); border-color: currentColor; }
+.btn { border: 1px solid var(--line); background: var(--panel2); padding: 7px 12px; border-radius: 7px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--uic-red); border-color: var(--uic-red); color: #fff; font-weight: 500; }
+.btn.small { padding: 4px 9px; font-size: 12.5px; }
+.main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.runbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 14px; }
+.runbar .grow { flex: 1 1 auto; }
+.runbar .stat { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.runbar select { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; }
+.scene { position: relative; overflow: hidden; border-radius: 10px; }
+.scene canvas { display: block; width: 100%; aspect-ratio: 16 / 8.6; background: var(--panel); }
+.meters { position: absolute; top: 10px; right: 10px; width: 188px; display: flex; flex-direction: column; gap: 7px; background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 11.5px; }
+.meters .m { display: grid; grid-template-columns: 78px 1fr 34px; gap: 6px; align-items: center; }
+.meters .bar { height: 7px; border-radius: 4px; background: var(--panel2); overflow: hidden; border: 1px solid var(--line); }
+.meters .bar i { display: block; height: 100%; width: 0; background: var(--lig); }
+.meters .m:nth-child(2) .bar i { background: var(--water); } .meters .m:nth-child(3) .bar i { background: var(--bad); }
+.meters .v { font-family: var(--mono); color: var(--muted); text-align: right; }
+.caption { position: absolute; right: 10px; top: 152px; width: min(300px, 31%); background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; font-size: 12.5px; }
+.legend { position: absolute; right: 10px; bottom: 10px; font-size: 11.5px; color: var(--muted); background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; display: flex; flex-direction: column; gap: 3px; }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c, var(--lig)); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+.tile .k { color: var(--muted); font-size: 11.5px; }
+.tile .v { font-family: var(--mono); font-size: 19px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tile .u { color: var(--muted); font-size: 11.5px; margin-left: 3px; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.chart { padding: 10px 12px 8px; }
+.chart h3 { font-size: 13px; margin-bottom: 1px; }
+.chart p { margin: 0 0 4px; font-size: 12px; color: var(--muted); }
+.chart canvas { width: 100%; height: 250px; display: block; }
+.tablewrap { padding: 12px 14px; overflow-x: auto; }
+.tablewrap table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 760px; }
+.tablewrap th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tablewrap td { padding: 6px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablewrap td.num, .tablewrap th.num { text-align: right; font-family: var(--mono); }
+.tablewrap tr[data-id] { cursor: pointer; }
+.tablewrap tr[data-id]:hover td { background: var(--panel2); }
+.tablewrap tr.sel td { background: var(--lig-soft); }
+.hint { font-size: 12px; color: var(--muted); }
+.inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.warn-box { border: 1px solid var(--warn); color: var(--warn); border-radius: 8px; padding: 6px 9px; font-size: 12px; }
+@media (max-width: 760px) { .meters, .caption, .legend { position: static; width: auto; margin: 8px; } .scene canvas { aspect-ratio: 4 / 3.6; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Lignin Nanoparticle Lab</h1>
+    <p>Solvent, antisolvent and mechanical forces in one population-balance model: nucleation, growth, DLVO aggregation and shear or cavitation breakup.</p>
+  </div>
+  <div class="tabs" role="group" aria-label="Process">
+    <button id="tab-anti" aria-pressed="true">Antisolvent addition</button>
+    <button id="tab-acid" aria-pressed="false">Acid precipitation</button>
+    <button id="tab-soni" aria-pressed="false">Sonication</button>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="side" aria-label="Inputs">
+    <details class="card" open><summary>Solvent</summary><div class="body">
+      <select id="solSel" class="full" aria-label="Solvent"></select>
+      <div id="solInfo"></div>
+      <div class="f2" id="solHSP"></div>
+      <div class="f2" id="solProps"></div>
+      <label class="note" for="curveTxt">Your COSMO-RS solubility vs water fraction for this solvent (optional). One pair per line: x, c_sat in mg/mL.</label>
+      <textarea id="curveTxt" placeholder="0, 100&#10;0.5, 8&#10;0.8, 0.2&#10;1, 0.005" spellcheck="false"></textarea>
+      <div class="inline"><button class="btn small" id="curveApply">Use curve</button><button class="btn small" id="curveClear">Clear</button><span id="curveMsg" class="hint"></span></div>
+    </div></details>
+
+    <details class="card" open><summary>Lignin</summary><div class="body">
+      <select id="ligSel" class="full" aria-label="Lignin sample">
+        <option value="DL">Dealkaline lignin (DL), your paper</option>
+        <option value="CDL">Clean dealkaline lignin (CDL)</option>
+        <option value="AL">Alkaline lignin (AL)</option>
+        <option value="custom">Custom</option>
+      </select>
+      <div id="ligFields"></div>
+      <p class="note" id="ligNote"></p>
+    </div></details>
+
+    <details class="card" open><summary id="procTitle">Process</summary><div class="body" id="procFields"></div></details>
+
+    <details class="card"><summary>Particle physics</summary><div class="body" id="physFields"></div></details>
+  </aside>
+
+  <main class="main">
+    <section class="card runbar" aria-label="Run controls">
+      <button class="btn primary" id="btnRun">Run</button>
+      <button class="btn" id="btnReset">Reset</button>
+      <button class="btn" id="btnEnd">Jump to end</button>
+      <label class="hint" for="speed">Speed</label>
+      <select id="speed"><option value="1">1x</option><option value="5">5x</option><option value="20" selected>20x</option><option value="100">100x</option><option value="400">400x</option><option value="1500">1500x</option></select>
+      <span class="grow"></span>
+      <span class="stat" id="runStat"></span>
+      <button class="btn small" id="btnCarry" title="Use the particles in the beaker right now as the starting dispersion for sonication">Sonicate this dispersion</button>
+    </section>
+
+    <section class="card scene" aria-label="Beaker view">
+      <canvas id="scene" aria-label="Animated beaker showing lignin chains, particles, antisolvent plume and mixing"></canvas>
+      <div class="legend" id="legend"></div>
+      <div class="meters" id="meters">
+        <div class="m"><span>Nucleation</span><div class="bar"><i id="mN"></i></div><span class="v" id="vN">0</span></div>
+        <div class="m"><span>Aggregation</span><div class="bar"><i id="mA"></i></div><span class="v" id="vA">0</span></div>
+        <div class="m"><span>Breakup</span><div class="bar"><i id="mB"></i></div><span class="v" id="vB">0</span></div>
+        <div class="hint" style="font-size:10.5px">log10 of event rate, events per m&sup3; per s</div>
+      </div>
+      <div class="caption" id="caption"></div>
+    </section>
+
+    <section class="tiles" id="tiles" aria-label="Readouts"></section>
+
+    <section class="charts">
+      <div class="card chart"><h3>Solubility and supersaturation path</h3><p id="p-sol"></p><canvas id="c-sol"></canvas></div>
+      <div class="card chart"><h3>Particle size distribution</h3><p>Volume- and DLS-weighted, current state.</p><canvas id="c-psd"></canvas></div>
+      <div class="card chart"><h3>DLS size and PDI over time</h3><p>Z-average (left) and PDI (right), computed the way a cumulant fit reports them.</p><canvas id="c-time"></canvas></div>
+      <div class="card chart"><h3>Where mechanical forces break lignin particles</h3><p id="p-force"></p><canvas id="c-force"></canvas></div>
+    </section>
+
+    <section class="card tablewrap" id="cmpSec" aria-label="Solvent comparison">
+      <div class="inline" style="justify-content:space-between;margin-bottom:6px">
+        <div><strong>Solvent comparison</strong> <span class="hint">for the current lignin, concentration and process. Click a row to select it.</span></div>
+        <div class="inline"><button class="btn small" id="btnBatch">Simulate all solvents</button><span id="batchMsg" class="hint"></span></div>
+      </div>
+      <table id="cmpTable"></table>
+    </section>
+  </main>
+</div>
+<script>'use strict';
+/* LNP population-balance core (browser + node). JS port of lnp_pbm.py, with an explicit,
+   positivity-preserving splitting scheme instead of a stiff ODE solver.
+   Units inside the model are SI. Conversion from UI units happens in Sim constructors. */
+(function (root) {
+  const kB = 1.380649e-23, NA = 6.02214076e23, QE = 1.602176634e-19, EPS0 = 8.8541878128e-12;
+  const NX = 41;                 // composition grid for the DLVO table
+  const NB = 56, DMIN = 1.5e-9;  // bins; d_i = DMIN * 2^(i/5) -> 1.5 nm ... ~3 um
+
+  /* ------------------------------------------------------------------ solvent data
+     mu: mPa s (25 C), rho: kg/m3, hsp: [dD,dP,dH] MPa^0.5, epsr, Vm cm3/mol.
+     conf: 'lit' = from a cited source / handbook value, 'est' = estimate, replace with your own. */
+  const WATER = { id: 'water', name: 'Water', hsp: [15.6, 16.0, 42.3], mu: 0.89, rho: 997, epsr: 78.4, Vm: 18.0 };
+  const SOLVENTS = [
+    { id: 'acetone', name: 'Acetone', hsp: [15.5, 10.4, 7.0], mu: 0.31, rho: 784, epsr: 20.7, Vm: 74.0, misc: 'full', conf: 'lit' },
+    { id: 'eg', name: 'Ethylene glycol', hsp: [17.0, 11.0, 26.0], mu: 16.1, rho: 1113, epsr: 37.0, Vm: 55.8, misc: 'full', conf: 'lit' },
+    { id: 'dmso', name: 'DMSO', hsp: [18.4, 16.4, 10.2], mu: 1.99, rho: 1100, epsr: 46.7, Vm: 71.3, misc: 'full', conf: 'lit' },
+    { id: 'dioxane', name: '1,4-Dioxane', hsp: [19.0, 1.8, 7.4], mu: 1.18, rho: 1034, epsr: 2.2, Vm: 85.7, misc: 'full', conf: 'lit' },
+    { id: 'meoh', name: 'Methanol', hsp: [14.7, 12.3, 22.3], mu: 0.54, rho: 792, epsr: 32.7, Vm: 40.7, misc: 'full', conf: 'lit' },
+    { id: 'etoh', name: 'Ethanol', hsp: [15.8, 8.8, 19.4], mu: 1.07, rho: 789, epsr: 24.5, Vm: 58.5, misc: 'full', conf: 'lit' },
+    { id: 'dcm', name: 'Dichloromethane', hsp: [17.0, 7.3, 7.1], mu: 0.41, rho: 1325, epsr: 8.9, Vm: 63.9, misc: 'limited', conf: 'lit' },
+    { id: 'gvl', name: 'γ-Valerolactone', hsp: [17.1, 11.9, 6.2], mu: 2.0, rho: 1050, epsr: 36.0, Vm: 95.0, misc: 'full', conf: 'lit' },
+    { id: 'emimoac', name: '[EMIM][OAc]', hsp: [19.0, 14.0, 17.0], mu: 120.0, rho: 1100, epsr: 15.0, Vm: 155.0, misc: 'full', conf: 'est' },
+    { id: 'ean', name: 'Ethylammonium nitrate', hsp: [16.5, 16.0, 24.0], mu: 28.0, rho: 1210, epsr: 26.0, Vm: 90.0, misc: 'full', conf: 'est' },
+    { id: 'eoan', name: 'Ethanolammonium nitrate [EOA][N]', hsp: [17.0, 17.0, 26.0], mu: 200.0, rho: 1260, epsr: 40.0, Vm: 98.0, misc: 'full', conf: 'est' },
+    { id: 'etnh2', name: 'Ethylamine', hsp: [15.0, 6.0, 9.0], mu: 0.23, rho: 683, epsr: 6.9, Vm: 66.0, misc: 'full', conf: 'est' },
+    { id: 'mea', name: 'Ethanolamine', hsp: [17.0, 15.5, 21.2], mu: 24.0, rho: 1018, epsr: 31.0, Vm: 60.0, misc: 'full', conf: 'lit' },
+    { id: 'bua', name: 'Butylamine', hsp: [16.2, 4.5, 8.0], mu: 0.57, rho: 741, epsr: 4.9, Vm: 99.0, misc: 'full', conf: 'lit' }
+  ];
+
+
+  /* ---- amines and their protic ionic liquids (acetate, nitrate). All properties below are ESTIMATES (conf 'est'):
+     replace with measured values. PIL HSP = 0.5 * amine HSP + 0.5 * anion term (anion terms chosen so that the
+     existing EAN estimate [16.5,16,24] is reproduced). mu mPa s, rho kg/m3, epsr, Vm cm3/mol, M g/mol. */
+  const AMINES_NEW = [
+    { id: 'morph', name: 'Morpholine (Morph)', hsp: [18.8, 4.9, 9.2], mu: 2.0, rho: 999, epsr: 7.3, Vm: 87.0, M: 87.1, misc: 'full', conf: 'est' },
+    { id: 'mei', name: '1-Methylimidazole (MeI)', hsp: [19.5, 12.0, 8.0], mu: 1.9, rho: 1030, epsr: 13.0, Vm: 80.0, M: 82.1, misc: 'full', conf: 'est' },
+    { id: 'hex', name: 'Hexylamine (Hex)', hsp: [16.2, 3.6, 6.9], mu: 1.0, rho: 766, epsr: 4.1, Vm: 132.0, M: 101.2, misc: 'limited', conf: 'est' },
+    { id: 'pyrro', name: 'Pyrrolidine (Pyrro)', hsp: [17.9, 6.5, 7.4], mu: 0.7, rho: 852, epsr: 8.2, Vm: 83.0, M: 71.1, misc: 'full', conf: 'est' },
+    { id: 'dme2', name: '2-Dimethylaminoethanol (2DME)', hsp: [16.2, 7.0, 11.0], mu: 3.8, rho: 887, epsr: 25.0, Vm: 100.7, M: 89.1, misc: 'full', conf: 'est' }
+  ];
+  SOLVENTS.forEach(function (s) {
+    if (s.id === 'etnh2') { s.name = 'Ethylamine (Et)'; s.M = 45.1; }
+    if (s.id === 'bua') { s.name = 'Butylamine (But)'; s.M = 73.1; }
+    if (s.id === 'mea') { s.name = 'Ethanolamine (Eth)'; s.M = 61.1; }
+    if (s.id === 'ean') { s.name = 'Ethylammonium nitrate [Et][NO3]'; s.Msalt = 108.1; }
+    if (s.id === 'eoan') { s.name = 'Ethanolammonium nitrate [Eth][NO3] ([EOA][N])'; s.Msalt = 124.1; }
+    if (s.id === 'emimoac') { s.Msalt = 170.2; }
+  });
+  AMINES_NEW.forEach(function (a) { SOLVENTS.push(a); });
+  const ANION = { oac: { tag: 'OAc', label: 'acetate', hsp: [17, 20, 36], Vm: 57, M: 60.05 }, no3: { tag: 'NO3', label: 'nitrate', hsp: [18, 26, 39], Vm: 40, M: 63.01 } };
+  // [mu mPa s, rho kg/m3, epsr] estimates for each PIL (25 C, neat)
+  const PIL_PROPS = {
+    et_oac: [50, 1000, 25], but_oac: [150, 960, 18], eth_oac: [150, 1110, 35], morph_oac: [300, 1110, 25], mei_oac: [70, 1130, 25], hex_oac: [400, 930, 15], pyrro_oac: [60, 1050, 22], dme2_oac: [80, 1060, 22],
+    but_no3: [90, 1130, 22], morph_no3: [300, 1300, 30], mei_no3: [150, 1300, 30], hex_no3: [250, 1050, 18], pyrro_no3: [120, 1250, 28], dme2_no3: [200, 1200, 30]
+  };
+  const CODE = { etnh2: 'Et', bua: 'But', mea: 'Eth', morph: 'Morph', mei: 'MeI', hex: 'Hex', pyrro: 'Pyrro', dme2: '2DME' };
+  const CATION = { etnh2: 'Ethylammonium', bua: 'Butylammonium', mea: 'Ethanolammonium', morph: 'Morpholinium', mei: '1-Methylimidazolium', hex: 'Hexylammonium', pyrro: 'Pyrrolidinium', dme2: '2-Dimethylaminoethanolammonium' };
+  const PREFIX = { etnh2: 'et', bua: 'but', mea: 'eth', morph: 'morph', mei: 'mei', hex: 'hex', pyrro: 'pyrro', dme2: 'dme2' };
+  const AM_ORDER = ['etnh2', 'bua', 'mea', 'morph', 'mei', 'hex', 'pyrro', 'dme2'];
+  ['oac', 'no3'].forEach(function (an) {
+    AM_ORDER.forEach(function (aid) {
+      const a = SOLVENTS.find(function (s) { return s.id === aid; }), id = PREFIX[aid] + '_' + an;
+      if (an === 'no3' && (aid === 'etnh2' || aid === 'mea')) return;          // already present as ean and eoan
+      const an_ = ANION[an], p = PIL_PROPS[id], M = a.M + an_.M;
+      SOLVENTS.push({ id: id, name: CATION[aid] + ' ' + an_.label + ' [' + CODE[aid] + '][' + an_.tag + ']', hsp: [0, 1, 2].map(function (i) { return 0.5 * a.hsp[i] + 0.5 * an_.hsp[i]; }),
+        mu: p[0], rho: p[1], epsr: p[2], Vm: a.Vm + an_.Vm, Msalt: M, misc: 'full', conf: 'est', pil: an, base: aid });
+    });
+  });
+  const GROUPS = { molecular: ['acetone', 'eg', 'dmso', 'dioxane', 'meoh', 'etoh', 'dcm', 'gvl'], amine: AM_ORDER };
+  SOLVENTS.forEach(function (s) {
+    s.group = GROUPS.molecular.indexOf(s.id) >= 0 ? 'Molecular solvents' : GROUPS.amine.indexOf(s.id) >= 0 ? 'Amines' : /_oac$/.test(s.id) ? 'Acetate PILs' : (/_no3$/.test(s.id) || s.id === 'ean' || s.id === 'eoan') ? 'Nitrate PILs' : 'Other ionic liquids';
+    if (/_oac$/.test(s.id)) s.note = 'A 1:1 acid–base mixture of a weak base and acetic acid can be poorly dissociated; check the extent of proton transfer before trusting the ionic-strength term.';
+  });
+
+  function defaultParams() {
+    return {
+      T: 298.15,
+      lig: { hsp: [21.42, 8.57, 21.80], R0: 13.56, Mw: 18816, Mnuc: 1500, rho: 1300, cmax: 100, sharp: 10, RED0: 1.0, cfloor: 0.002 },
+      pil_alpha: 0,
+      cosmo: { mode: 'auto', cw: 0.005, k: 3, curv: 0 }, dG: null,
+      gamma_mN: 3.0, logA: 26, d_prim_nm: 80, sigma_a: 2000, m_str: 1.0, k_b: 0.05,
+      zeta_mV: -35, ionic_mM: 1.0, hamaker_zJ: 10, mu_peak: 1.0,
+      acid: { on: false, c0: 2, Cb: 20, Ca: 50, Ng_phen: 3, pKa_phen: 10, Ng_cooh: 0.5, pKa_cooh: 4.5, pHs: 10, steep: 1.5, cn: 0.02, zeta_alk: -45 },
+      anti: { c0: 2, V0: 5, Vadd: 10, Q: 1, Vdrop: 100, rpm: 500, Np: 1.0, Dbar: 20, thold: 120 },
+      soni: { d0: 400, sg: 1.4, conc: 1, x: 1.0, P: 20, V: 20, f_loc: 10, t: 300 }
+    };
+  }
+
+  function parseCurve(text) {
+    const pts = [];
+    String(text || '').split(/\r?\n/).forEach(function (ln) {
+      const m = ln.trim().split(/[,;\t ]+/).map(Number);
+      if (m.length >= 2 && isFinite(m[0]) && isFinite(m[1]) && m[1] > 0) pts.push([m[0], m[1]]);
+    });
+    pts.sort(function (a, b) { return a[0] - b[0]; });
+    return pts.length >= 2 ? pts : null;
+  }
+
+  /* ================================================================ Model */
+  class Model {
+    constructor(P, sol, curve, light) {
+      this.P = P; this.sol = sol; this.curve = curve || null;
+      const nb = this.nb = NB;
+      this.d = new Float64Array(nb); this.r = new Float64Array(nb); this.v = new Float64Array(nb);
+      for (let i = 0; i < nb; i++) {
+        this.d[i] = DMIN * Math.pow(2, i / 5); this.r[i] = this.d[i] / 2;
+        this.v[i] = Math.PI / 6 * Math.pow(this.d[i], 3);
+      }
+      this.v0 = this.v[0]; this.lnq = Math.log(2) * 3 / 5;
+      this.kT = kB * P.T; this.rhoP = P.lig.rho;
+      const M = P.lig.Mnuc / 1000;
+      this.vm = M / (this.rhoP * NA);
+      const g = P.gamma_mN * 1e-3;
+      this.gamma = g;
+      this.Bnuc = 16 * Math.PI * Math.pow(g, 3) * this.vm * this.vm / (3 * Math.pow(this.kT, 3));
+      this.A = Math.pow(10, P.logA);
+      this.rh = 0.66e-9 * Math.sqrt(P.lig.Mw / 1500);
+      this.muS = sol.mu * 1e-3; this.muW = WATER.mu * 1e-3;
+      this.dPrim = P.d_prim_nm * 1e-9;
+      this.acidOn = !!(P.acid && P.acid.on && sol.id === 'aq');
+      this.muPeak = this.acidOn ? 0 : P.mu_peak;
+      if (this.acidOn) this._buildAcid();
+      this._buildCsat();
+      if (light) return;
+      this._buildPairs(); this._buildBreak(); this._buildW();
+      this.tmp = new Float64Array(nb); this.sp = [0, 0, 0, 0];
+    }
+    /* ---- composition-dependent properties (x = antisolvent volume fraction) */
+    mu(x) { return Math.exp((1 - x) * Math.log(this.muS) + x * Math.log(this.muW)) * (1 + this.muPeak * 4 * x * (1 - x)); }
+    rhoL(x) { return (1 - x) * this.sol.rho + x * WATER.rho; }
+    epsr(x) { return (1 - x) * this.sol.epsr + x * WATER.epsr; }
+    nu(x) { return this.mu(x) / this.rhoL(x); }
+    Dlig(x) { return this.kT / (6 * Math.PI * this.mu(x) * this.rh); }
+    mixHSP(x) { const s = this.sol.hsp, w = WATER.hsp; return [0, 1, 2].map(function (k) { return (1 - x) * s[k] + x * w[k]; }); }
+    RED(x) {
+      const h = this.mixHSP(x), L = this.P.lig.hsp;
+      const Ra = Math.sqrt(4 * Math.pow(h[0] - L[0], 2) + Math.pow(h[1] - L[1], 2) + Math.pow(h[2] - L[2], 2));
+      return Ra / this.P.lig.R0;
+    }
+    _csatHSP(x) {
+      const L = this.P.lig, red = this.RED(x);
+      return Math.max(Math.exp(Math.log(L.cmax) - L.sharp * Math.max(0, red - L.RED0)), L.cfloor);
+    }
+    /* acid precipitation: titration of alkaline lignin with strong acid; x = acid volume fraction.
+       charge balance (mM), acid = H2SO4 (Ca = mM H2SO4): Cb(1-x) + H - Ca x (1 + alpha_SO4) - OH - ionised lignin groups = 0, solved by bisection */
+    _buildAcid() {
+      const a = this.P.acid, n = 201, c0 = a.c0;
+      this.pHt = new Float64Array(n); this.zt = new Float64Array(n); this.It = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        const x = i / (n - 1); let lo = 0, hi = 14, al = 0;
+        for (let k = 0; k < 60; k++) {
+          const pH = 0.5 * (lo + hi), ap = 1 / (1 + Math.pow(10, a.pKa_phen - pH)), ac = 1 / (1 + Math.pow(10, a.pKa_cooh - pH));
+          const A = (1 - x) * c0 * (a.Ng_phen * ap + a.Ng_cooh * ac);
+          const as = 1 / (1 + Math.pow(10, 1.99 - pH));              // SO4(2-) share of added sulfate (HSO4- pKa2 = 1.99)
+          const g = a.Cb * (1 - x) - a.Ca * x * (1 + as) + Math.pow(10, 3 - pH) - Math.pow(10, pH - 11) - A;
+          if (g > 0) lo = pH; else hi = pH;
+        }
+        const pH = 0.5 * (lo + hi), ap = 1 / (1 + Math.pow(10, a.pKa_phen - pH)), ac = 1 / (1 + Math.pow(10, a.pKa_cooh - pH));
+        al = (a.Ng_phen * ap + a.Ng_cooh * ac) / (a.Ng_phen + a.Ng_cooh);
+        this.pHt[i] = pH; this.zt[i] = a.zeta_alk * (0.1 + 0.9 * al);
+        const as2 = 1 / (1 + Math.pow(10, 1.99 - pH));                 // ionic strength of Na+, HSO4-, SO4(2-): I = 1/2 sum c z^2
+        this.It[i] = Math.max(0.5 * (a.Cb * (1 - x) + a.Ca * x * (4 * as2 + (1 - as2))), 0.3) + 0.5;
+      }
+    }
+    _tab(t, x) { x = x < 0 ? 0 : x > 1 ? 1 : x; const f = x * 200, i = Math.min(Math.floor(f), 199), w = f - i; return (1 - w) * t[i] + w * t[i + 1]; }
+    pH(x) { return this.acidOn ? this._tab(this.pHt, x) : null; }
+    zetaMV(x) { return this.acidOn ? this._tab(this.zt, x) : this.P.zeta_mV * x; }
+    ionicMM(x) {
+      if (this.acidOn) return this._tab(this.It, x);
+      const s = this.sol, I0 = this.P.ionic_mM;
+      if (!s.Msalt || !(this.P.pil_alpha > 0)) return I0;
+      const salt = (1 - Math.min(Math.max(x, 0), 1)) * s.rho * 1000 / s.Msalt;   // mol/m3 (= mM) of salt after ideal volume mixing
+      return Math.min(I0 + this.P.pil_alpha * salt, 500);                        // Debye-Hueckel is not valid at high I: capped at 0.5 M
+    }
+    _buildCsat() {
+      const n = 201, P = this.P, L = P.lig; this.lnc = new Float64Array(n);
+      if (this.acidOn) {
+        const a = P.acid; this.source = 'acid';
+        for (let i = 0; i < n; i++) {
+          const pH = this.pHt[i], c = a.cn + (L.cmax - a.cn) / (1 + Math.pow(10, -a.steep * (pH - a.pHs)));
+          this.lnc[i] = Math.log(c);
+        }
+        return;
+      }
+      const dG = P.dG, cs = P.cosmo || { mode: 'hsp' };
+      const useCosmo = !this.curve && dG && cs.mode !== 'hsp' && dG[this.sol.id] != null && dG.water != null;
+      this.source = this.curve ? 'curve' : (useCosmo ? 'cosmo' : 'hsp');
+      const RT = 0.0019872 * P.T;                                   // kcal/mol
+      for (let i = 0; i < n; i++) {
+        const x = i / (n - 1);
+        if (this.curve) {
+          const c = this.curve; let y;
+          if (x <= c[0][0]) y = Math.log(c[0][1]);
+          else if (x >= c[c.length - 1][0]) y = Math.log(c[c.length - 1][1]);
+          else {
+            let k = 0; while (k < c.length - 2 && c[k + 1][0] < x) k++;
+            const w = (x - c[k][0]) / (c[k + 1][0] - c[k][0] || 1);
+            y = (1 - w) * Math.log(c[k][1]) + w * Math.log(c[k + 1][1]);
+          }
+          this.lnc[i] = y;
+        } else if (useCosmo) {
+          const dd = dG[this.sol.id] - dG.water;                      // transfer free energy water -> solvent, kcal/mol per segment
+          let y = Math.log(cs.cw) + cs.k * (1 - x) * (-dd) / RT + cs.curv * x * (1 - x);
+          this.lnc[i] = Math.min(Math.max(y, Math.log(L.cfloor)), Math.log(L.cmax));
+        } else this.lnc[i] = Math.log(this._csatHSP(x));
+      }
+    }
+    csat(x) {
+      x = x < 0 ? 0 : x > 1 ? 1 : x;
+      const f = x * 200; let i = Math.floor(f); if (i > 199) i = 199;
+      const w = f - i; return Math.exp((1 - w) * this.lnc[i] + w * this.lnc[i + 1]);
+    }
+    /* water fraction at which c_sat = c (first crossing), or null */
+    xAtSat(c) {
+      for (let i = 0; i < 200; i++) {
+        const a = this.lnc[i] - Math.log(c), b = this.lnc[i + 1] - Math.log(c);
+        if (a >= 0 && b < 0) return (i + a / (a - b)) / 200;
+      }
+      return this.lnc[0] < Math.log(c) ? 0 : null;
+    }
+    /* first water fraction where the diluted bulk (c0 (1-x), no precipitation) exceeds c_sat; 0 if already above */
+    xCrit(c0) {
+      for (let i = 0; i < 201; i++) { const x = i / 200; if (c0 * (1 - x) > Math.exp(this.lnc[i])) return x; }
+      return null;
+    }
+    /* peak supersaturation reached up to water fraction xEnd if nothing precipitated */
+    sMax(c0, xEnd) {
+      let m = 0; for (let i = 0; i < 201; i++) { const x = i / 200; if (x > xEnd) break; m = Math.max(m, c0 * (1 - x) / Math.exp(this.lnc[i])); }
+      return m;
+    }
+    /* ---- volume splitting onto the grid (number- and mass-conserving) */
+    split(v, o) {
+      const nb = this.nb, vg = this.v;
+      if (v >= vg[nb - 1]) { o[0] = nb - 1; o[1] = nb - 1; o[2] = v / vg[nb - 1]; o[3] = 0; return; }
+      if (v <= this.v0) { o[0] = 0; o[1] = 0; o[2] = v / this.v0; o[3] = 0; return; }
+      let k = Math.floor(Math.log(v / this.v0) / this.lnq); if (k > nb - 2) k = nb - 2; if (k < 0) k = 0;
+      let b = (v - vg[k]) / (vg[k + 1] - vg[k]);
+      if (b > 1 && k < nb - 2) { k++; b = (v - vg[k]) / (vg[k + 1] - vg[k]); }
+      if (b < 0) b = 0; if (b > 1) b = 1;
+      o[0] = k; o[1] = k + 1; o[2] = 1 - b; o[3] = b;
+    }
+    _buildPairs() {
+      const nb = this.nb, np = nb * (nb + 1) / 2, o = [0, 0, 0, 0];
+      this.np = np;
+      this.pI = new Int32Array(np); this.pJ = new Int32Array(np);
+      this.pK = new Int32Array(np); this.pK1 = new Int32Array(np);
+      this.pA = new Float64Array(np); this.pB = new Float64Array(np);
+      this.B0 = new Float64Array(np); this.S0 = new Float64Array(np);
+      this.pIdx = new Int32Array(nb * nb);
+      let p = 0;
+      for (let i = 0; i < nb; i++) for (let j = i; j < nb; j++) {
+        this.pI[p] = i; this.pJ[p] = j; this.pIdx[i * nb + j] = p; this.pIdx[j * nb + i] = p;
+        this.split(this.v[i] + this.v[j], o);
+        this.pK[p] = o[0]; this.pK1[p] = o[1]; this.pA[p] = o[2]; this.pB[p] = o[3];
+        const ri = this.r[i], rj = this.r[j];
+        this.B0[p] = (2 * this.kT / 3) * Math.pow(ri + rj, 2) / (ri * rj);   // divide by mu(x)
+        this.S0[p] = (4 / 3) * Math.pow(ri + rj, 3);                          // times gdot
+        p++;
+      }
+    }
+    _buildBreak() {
+      const nb = this.nb, o = [0, 0, 0, 0];
+      const F = [0.5, 0.35, 0.2], WF = [0.4, 0.35, 0.25];        // daughter volume fractions (f, 1-f) and their weights
+      this.ND = F.length * 2;
+      this.bdK = new Int32Array(nb * this.ND); this.bdK1 = new Int32Array(nb * this.ND);
+      this.bdA = new Float64Array(nb * this.ND); this.bdB = new Float64Array(nb * this.ND); this.bdW = new Float64Array(nb * this.ND);
+      this.canBreak = new Uint8Array(nb);
+      for (let i = 0; i < nb; i++) {
+        let m = i * this.ND;
+        for (let q = 0; q < F.length; q++) for (let h = 0; h < 2; h++) {
+          const frac = h === 0 ? F[q] : 1 - F[q];
+          this.split(this.v[i] * frac, o);
+          this.bdK[m] = o[0]; this.bdK1[m] = o[1]; this.bdA[m] = o[2]; this.bdB[m] = o[3]; this.bdW[m] = WF[q]; m++;
+        }
+        this.canBreak[i] = (this.v[i] * 0.2 >= this.v0 && this.d[i] > this.dPrim * 1.0001) ? 1 : 0;
+      }
+    }
+    _buildW() {
+      const P = this.P, nb = this.nb, np = this.np, kT = this.kT;
+      const nh = 70, h = new Float64Array(nh);
+      for (let k = 0; k < nh; k++) h[k] = Math.pow(10, Math.log10(3e-10) + (Math.log10(5e-7) - Math.log10(3e-10)) * k / (nh - 1));
+      const A = P.hamaker_zJ * 1e-21;
+      this.Wt = [];
+      for (let ix = 0; ix < NX; ix++) {
+        const x = ix / (NX - 1), er = this.epsr(x);
+        const kappa = Math.sqrt(2 * NA * QE * QE * this.ionicMM(x) / (er * EPS0 * kT));
+        const psi = this.zetaMV(x) * 1e-3;
+        const el = 4 * Math.PI * EPS0 * er * psi * psi;
+        const W = new Float64Array(np);
+        for (let p = 0; p < np; p++) {
+          const ri = this.r[this.pI[p]], rj = this.r[this.pJ[p]], Re = ri * rj / (ri + rj);
+          let vmax = -1e9;
+          for (let k = 0; k < nh; k++) {
+            const V = el * Re * Math.log1p(Math.exp(-kappa * h[k])) - A * Re / (6 * h[k]);
+            if (V > vmax) vmax = V;
+          }
+          W[p] = Math.exp(Math.min(Math.max(vmax / kT, 0), 30));
+        }
+        this.Wt.push(W);
+      }
+    }
+    newZone(x, c) {
+      return {
+        N: new Float64Array(this.nb), c: c, x: x, beta: new Float64Array(this.np), bk: new Float64Array(this.nb),
+        L: new Float64Array(this.nb), fac: new Float64Array(this.nb), dN: new Float64Array(this.nb),
+        rt: { dt: 1, cs: 1, J: 0, vstar: 0, lam: 0, sumrN: 0, agg: 0, brk: 0 }
+      };
+    }
+    /* ---- DLS observables (Rayleigh weights) */
+    dls(N) {
+      let s = 0, g1 = 0, g2 = 0;
+      for (let i = 0; i < this.nb; i++) {
+        const I = N[i] * this.v[i] * this.v[i]; s += I; g1 += I / this.d[i]; g2 += I / (this.d[i] * this.d[i]);
+      }
+      if (!(s > 0)) return { z: NaN, pdi: NaN };
+      g1 /= s; g2 /= s;
+      return { z: 1 / g1, pdi: Math.max(g2 / (g1 * g1) - 1, 0) };
+    }
+    volFrac(N) { let s = 0; for (let i = 0; i < this.nb; i++) s += N[i] * this.v[i]; return s; }
+    /* hydrodynamic stress on a particle of diameter d in turbulence eps (Pa) */
+    stress(d, eps, x) {
+      const mu = this.mu(x), rho = this.rhoL(x), nu = mu / rho, eta = Math.pow(nu * nu * nu / eps, 0.25);
+      return d > eta ? rho * Math.pow(eps * d, 2 / 3) : mu * Math.sqrt(eps / nu);
+    }
+    strength(d) { const P = this.P; return P.sigma_a * Math.pow(this.dPrim / Math.max(d, this.dPrim), P.m_str); }
+
+    /* ---- rate evaluation + stable step suggestion */
+    rates(z, eps) {
+      const P = this.P, nb = this.nb, N = z.N, x = z.x, rt = z.rt;
+      const mu = this.mu(x), rho = this.rhoL(x), nu = mu / rho, gdot = Math.sqrt(eps / nu);
+      const f = Math.min(Math.max(x, 0), 1) * (NX - 1), i0 = Math.min(Math.floor(f), NX - 2), w = f - i0;
+      const W0 = this.Wt[i0], W1 = this.Wt[i0 + 1], beta = z.beta, L = z.L;
+      let tot = 0; const act = [];
+      for (let i = 0; i < nb; i++) { L[i] = 0; if (N[i] > 0) { act.push(i); tot += N[i] * this.v[i]; } }
+      let agg = 0;
+      for (let a = 0; a < act.length; a++) for (let b = a; b < act.length; b++) {
+        const i = act[a], j = act[b], p = this.pIdx[i * nb + j];
+        const be = (this.B0[p] / mu + this.S0[p] * gdot) / ((1 - w) * W0[p] + w * W1[p]);
+        beta[p] = be;
+        const R = be * N[i] * N[j] * (i === j ? 0.5 : 1);
+        if (i === j) L[i] += 2 * R; else { L[i] += R; L[j] += R; }
+        agg += R;
+      }
+      let maxRel = 0;
+      for (let a = 0; a < act.length; a++) { const i = act[a]; if (N[i] * this.v[i] > 1e-9 * tot) maxRel = Math.max(maxRel, L[i] / N[i]); }
+      let dt = maxRel > 0 ? 0.15 / maxRel : 1e9;
+      // breakage
+      const eta = Math.pow(nu * nu * nu / eps, 0.25); let maxB = 0, brk = 0;
+      for (let i = 0; i < nb; i++) {
+        z.bk[i] = 0;
+        if (N[i] > 0 && this.canBreak[i]) {
+          const d = this.d[i];
+          const tau = d > eta ? rho * Math.pow(eps * d, 2 / 3) : mu * gdot;
+          const sig = P.sigma_a * Math.pow(this.dPrim / Math.max(d, this.dPrim), P.m_str);
+          const b = P.k_b * gdot * Math.exp(-sig / Math.max(tau, 1e-30));
+          z.bk[i] = b; if (b > maxB) maxB = b; brk += b * N[i];
+        }
+      }
+      if (maxB > 0) dt = Math.min(dt, 0.3 / maxB);
+      // nucleation / growth
+      const cs = this.csat(x); rt.cs = cs; rt.J = 0; rt.vstar = 0; rt.lam = 0; rt.sumrN = 0;
+      const ex = z.c - cs;
+      if (ex > 1e-12 * cs && z.c / cs > 1.0001) {
+        const lnS = Math.log(z.c / cs);
+        const J = this.A * Math.exp(-this.Bnuc / (lnS * lnS));
+        const rstar = 2 * this.gamma * this.vm / (this.kT * lnS);
+        const vstar = Math.max(4 / 3 * Math.PI * rstar * rstar * rstar, this.v0);
+        rt.J = J; rt.vstar = vstar;
+        if (J * vstar * this.rhoP > 0) dt = Math.min(dt, 0.1 * ex / (J * vstar * this.rhoP));
+      }
+      if (ex > 0) {
+        const D = this.Dlig(x); let lam = 0, sr = 0;
+        for (let a = 0; a < act.length; a++) { const i = act[a]; lam += 4 * Math.PI * this.r[i] * D * N[i]; sr += this.r[i] * N[i]; }
+        rt.lam = lam; rt.sumrN = sr;
+        if (lam > 0) dt = Math.min(dt, 2 / lam);
+      }
+      rt.dt = Math.max(dt, 1e-8); rt.agg = agg; rt.brk = brk; rt.gdot = gdot;
+    }
+    /* ---- advance one zone by dt using the rates() just computed */
+    apply(z, dt) {
+      const nb = this.nb, N = z.N, dN = z.dN, rt = z.rt, o = this.sp;
+      dN.fill(0);
+      // aggregation with a pairwise limiter (positivity and exact mass conservation)
+      const fac = z.fac, L = z.L;
+      for (let i = 0; i < nb; i++) fac[i] = (N[i] > 0 && L[i] * dt > 0.5 * N[i]) ? 0.5 * N[i] / (L[i] * dt) : 1;
+      for (let i = 0; i < nb; i++) {
+        if (!(N[i] > 0)) continue;
+        for (let j = i; j < nb; j++) {
+          if (!(N[j] > 0)) continue;
+          const p = this.pIdx[i * nb + j];
+          const R = z.beta[p] * N[i] * N[j] * (i === j ? 0.5 : 1) * Math.min(fac[i], fac[j]) * dt;
+          if (R <= 0) continue;
+          if (i === j) dN[i] -= 2 * R; else { dN[i] -= R; dN[j] -= R; }
+          dN[this.pK[p]] += this.pA[p] * R; dN[this.pK1[p]] += this.pB[p] * R;
+        }
+      }
+      for (let i = 0; i < nb; i++) {
+        const b = z.bk[i];
+        if (b > 0) {
+          const fr = Math.min(b * dt, 0.5) * N[i];
+          dN[i] -= fr;
+          for (let m = i * this.ND, e = m + this.ND; m < e; m++) { dN[this.bdK[m]] += fr * this.bdW[m] * this.bdA[m]; dN[this.bdK1[m]] += fr * this.bdW[m] * this.bdB[m]; }
+        }
+      }
+      for (let i = 0; i < nb; i++) { N[i] += dN[i]; if (N[i] < 1e-3) N[i] = 0; }
+      // nucleation + diffusion-limited growth of the supersaturation excess
+      const ex = z.c - rt.cs;
+      if (ex > 0) {
+        const mN = Math.min(rt.J * dt * rt.vstar * this.rhoP, ex);
+        let mG = 0;
+        if (rt.lam > 0) mG = (ex - mN) * (1 - Math.exp(-rt.lam * dt));
+        z.c -= mN + mG;
+        if (mG > 0) {
+          let sr = 0; for (let i = 0; i < nb; i++) sr += this.r[i] * N[i];
+          if (sr > 0) {
+            const t = this.tmp; t.fill(0);
+            for (let i = 0; i < nb; i++) {
+              if (N[i] <= 0) continue;
+              const dv = mG * this.r[i] / (this.rhoP * sr);
+              this.split(this.v[i] + dv, o);
+              t[o[0]] += N[i] * o[2]; t[o[1]] += N[i] * o[3];
+            }
+            for (let i = 0; i < nb; i++) N[i] = t[i];
+          } else z.c += mG;
+        }
+        if (mN > 0) {
+          const n = mN / (this.rhoP * rt.vstar); this.split(rt.vstar, o);
+          N[o[0]] += n * o[2]; N[o[1]] += n * o[3];
+        }
+      }
+      if (z.c < 0) z.c = 0;
+    }
+  }
+
+  /* ================================================================ Simulation drivers */
+  const now = (typeof performance !== 'undefined') ? function () { return performance.now(); } : function () { return Date.now(); };
+
+  class Sim {
+    /* mode 'anti': drop-wise antisolvent addition (UI units in o); mode 'soni': sonication.
+       For 'soni', init = {N, x, c} may carry a particle population from a previous antisolvent run. */
+    constructor(model, mode, o, init) {
+      this.m = model; this.mode = mode; this.o = o; this.t = 0; this.done = false; this.hist = [];
+      this.last = { J: 0, agg: 0, brk: 0 }; this.dropEvent = 0;
+      if (mode === 'anti') {
+        this.c0 = o.c0; this.V0 = o.V0 * 1e-6; this.Vadd = o.Vadd * 1e-6; this.Q = o.Q * 1e-6 / 60;
+        this.Vd = Math.min(o.Vdrop * 1e-9, this.Vadd); this.nd = Math.max(1, Math.round(this.Vadd / this.Vd));
+        this.tauD = this.Vd / this.Q; this.thold = o.thold;
+        const n = o.rpm / 60, Vt = this.V0 + this.Vadd;
+        this.eps = o.Np * Math.pow(n, 3) * Math.pow(o.Dbar * 1e-3, 5) / Vt;
+        this.bulk = model.newZone(0, this.c0); this.plume = null; this.Vb = this.V0;
+        this.dropIdx = 0; this.tDrop = 0; this.tHold = 0; this.phase = 'drop';
+        this.T = this.nd * this.tauD + this.thold;
+        this.xEnd = this.Vadd / (this.V0 + this.Vadd);
+      } else {
+        const V = o.V * 1e-6; this.V = V;
+        this.eps = o.f_loc * o.P / (model.rhoL(o.x) * V);
+        const x = init ? init.x : o.x;
+        this.bulk = model.newZone(x, init ? init.c : model.csat(x));
+        if (init && init.N) this.bulk.N.set(init.N);
+        else {
+          const m = model, lnd = Array.from(m.d, Math.log); let s = 0; const w = new Float64Array(m.nb);
+          for (let i = 0; i < m.nb; i++) { w[i] = Math.exp(-0.5 * Math.pow((lnd[i] - Math.log(o.d0 * 1e-9)) / Math.log(o.sg), 2)); s += w[i]; }
+          for (let i = 0; i < m.nb; i++) this.bulk.N[i] = (o.conc / m.rhoP) * (w[i] / s) / m.v[i];
+        }
+        this.plume = null; this.phase = 'run'; this.T = o.t; this.xEnd = x;
+      }
+      this.recDt = this.T / 500; this.nextRec = 0;
+      this.mass0 = this.massTotal();
+      this.record();
+    }
+    massTotal() {
+      const m = this.m, z = this.bulk, V = this.mode === 'anti' ? this.Vb : this.V;
+      return (m.volFrac(z.N) * m.rhoP + z.c) * V;
+    }
+    closure() { return this.mode === 'anti' ? (this.massTotal() / (this.c0 * this.V0)) : this.massTotal() / this.mass0; }
+    tmix(x) { return 17.3 * Math.sqrt(this.m.nu(x) / this.eps); }
+    record() {
+      const m = this.m, z = this.bulk, d = m.dls(z.N);
+      this.hist.push({
+        t: this.t, z: d.z * 1e9, pdi: d.pdi, x: z.x, c: z.c, S: z.c / m.csat(z.x),
+        phi: m.volFrac(z.N) * m.rhoP / (this.mode === 'anti' ? this.c0 * this.V0 / this.Vb : Math.max(this.mass0 / this.V, 1e-12))
+      });
+    }
+    step(cap) {
+      const m = this.m, z = this.bulk, eps = this.eps;
+      if (this.mode === 'anti' && this.phase === 'drop' && !this.plume && this.tDrop === 0) {
+        const tm = this.tmix(z.x);
+        this.tm = tm; this.tA = Math.min(4 * tm, this.tauD, tm * Math.max(Math.log(0.25 * this.Vb / this.Vd), 0.5));
+        const p = m.newZone(1, 0); p.t = 0; this.plume = p; this.dropEvent++;
+      }
+      m.rates(z, eps); let dt = z.rt.dt, rem;
+      if (this.plume) { m.rates(this.plume, eps); dt = Math.min(dt, this.plume.rt.dt, 0.1 * this.tm); rem = this.tA - this.plume.t; }
+      else if (this.mode === 'anti') rem = this.phase === 'drop' ? this.tauD - this.tDrop : this.thold - this.tHold;
+      else rem = this.T - this.t;
+      dt = Math.max(Math.min(dt, rem, cap), 1e-9);
+      m.apply(z, dt);
+      let J = z.rt.J, agg = z.rt.agg, brk = z.rt.brk;
+      if (this.plume) {
+        const p = this.plume; m.apply(p, dt);
+        const a = 1 - Math.exp(-dt / this.tm);
+        for (let i = 0; i < m.nb; i++) p.N[i] += (z.N[i] - p.N[i]) * a;
+        p.c += (z.c - p.c) * a; p.x += (z.x - p.x) * a; p.t += dt;
+        J = Math.max(J, p.rt.J); agg = Math.max(agg, p.rt.agg); brk = Math.max(brk, p.rt.brk);
+        if (p.t >= this.tA - 1e-12) this.mergePlume();
+      }
+      this.last.J = J; this.last.agg = agg; this.last.brk = brk;
+      this.t += dt;
+      if (this.mode === 'anti') {
+        if (this.phase === 'drop') {
+          this.tDrop += dt;
+          if (this.tDrop >= this.tauD - 1e-12) {
+            if (this.plume) this.mergePlume();
+            this.tDrop = 0; this.dropIdx++;
+            if (this.dropIdx >= this.nd) { this.phase = this.thold > 0 ? 'hold' : 'done'; }
+          }
+        } else if (this.phase === 'hold') { this.tHold += dt; if (this.tHold >= this.thold - 1e-12) this.phase = 'done'; }
+      } else if (this.t >= this.T - 1e-12) this.phase = 'done';
+      if (this.phase === 'done') this.done = true;
+      if (this.t >= this.nextRec || this.done) { this.record(); this.nextRec = this.t + this.recDt; }
+    }
+    mergePlume() {
+      const m = this.m, z = this.bulk, p = this.plume, Vd = this.Vd;
+      const Vpe = Vd * Math.exp(p.t / this.tm), Vrem = Math.max(this.Vb - (Vpe - Vd), 0), Vn = this.Vb + Vd;
+      for (let i = 0; i < m.nb; i++) z.N[i] = (Vrem * z.N[i] + Vpe * p.N[i]) / Vn;
+      z.c = (Vrem * z.c + Vpe * p.c) / Vn; z.x = (Vrem * z.x + Vpe * p.x) / Vn; this.Vb = Vn;
+      this.plume = null; this.lastPlumeX = p.x;
+    }
+    /* run for up to budgetMs of wall time or until simTarget (sim seconds) */
+    advance(budgetMs, simTarget) {
+      const t0 = now();
+      while (!this.done && this.t < simTarget - 1e-12 && (now() - t0) < budgetMs) this.step(simTarget - this.t);
+    }
+    runAll() { while (!this.done) this.step(1e9); return this.result(); }
+    result() { const d = this.m.dls(this.bulk.N); return { z: d.z * 1e9, pdi: d.pdi, x: this.bulk.x, closure: this.closure(), N: this.bulk.N, c: this.bulk.c }; }
+  }
+
+  root.LNP = { Model, Sim, SOLVENTS, WATER, defaultParams, parseCurve, NB, DMIN };
+  if (typeof module !== 'undefined') module.exports = root.LNP;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>'use strict';
+/* Lignin characterisation and openCOSMO-RS solvation free energies from
+   Adesanya et al., Chem. Eng. J. 529 (2026) 173080 and its supplement (Tables S5, S14, S16, S17).
+   dG units are assumed kcal/mol (ORCA 6 openCOSMO-RS, BP86/def-TZVP, 298 K). */
+(function (root) {
+  const SOLV_COLS = ['water', 'eoan', 'gvl', 'dioxane', 'dmso', 'emimoac'];
+  const DG = {   // rows: lignin model structures (Table S5)
+    S:   [-8.155, -12.540, -13.948, -14.188, -15.432, -17.256],
+    G:   [-12.800, -14.506, -15.396, -15.594, -18.089, -22.415],
+    H:   [-13.091, -12.195, -13.721, -13.905, -16.395, -20.818],
+    bO4: [-10.634, -18.770, -21.730, -22.312, -22.436, -22.903],
+    aO4: [-14.239, -19.766, -21.773, -22.032, -23.347, -24.937],
+    b1:  [-14.239, -19.955, -21.773, -22.032, -23.347, -24.937],
+    b5:  [-7.166, -13.951, -16.153, -16.541, -15.995, -14.817],
+    bb:  [-7.727, -15.571, -17.754, -18.254, -17.549, -16.174]
+  };
+  const LIGNINS = {
+    DL:  { name: 'Dealkaline lignin (DL)', Mw: 18816, Mn: 7502, pdi: 2.508, SGH: [1.8, 64.82, 33.39],
+           link: { bO4: 31.72, aO4: 14.57, bb: 29.83, b5: 13.16, b1: 10.72 } },
+    CDL: { name: 'Clean dealkaline lignin (CDL, Soxhlet)', Mw: 12202, Mn: 2492, pdi: 4.896, SGH: [2.33, 74.41, 23.27],
+           link: { bO4: 13.52, aO4: 24.28, bb: 31.34, b5: 14.99, b1: 15.88 } },
+    AL:  { name: 'Alkaline lignin (AL)', Mw: 33535, Mn: 24964, pdi: 1.343, SGH: [6.74, 68.7, 24.57],
+           link: { bO4: 14.42, aO4: 33.52, bb: 36.10, b5: 15.96, b1: 0.0 } }
+  };
+  /* Segment solvation free energy of a lignin with composition SGH (%) and linkage distribution (%):
+     average of the monomer-weighted value and the linkage-weighted dimer value per unit (dimer / 2). */
+  function ligDG(SGH, link) {
+    const s = SGH[0] + SGH[1] + SGH[2], lk = Object.keys(link).reduce(function (a, k) { return a + link[k]; }, 0);
+    const out = {};
+    SOLV_COLS.forEach(function (id, c) {
+      const mono = (SGH[0] * DG.S[c] + SGH[1] * DG.G[c] + SGH[2] * DG.H[c]) / s;
+      let dim = 0; Object.keys(link).forEach(function (k) { dim += link[k] * DG[k][c]; });
+      dim = dim / lk / 2;
+      out[id] = 0.5 * mono + 0.5 * dim;
+    });
+    return out;
+  }
+  /* add a solvent column from user data: vec = {S,G,H,bO4,aO4,b1,b5,bb} in the same units as Table S5 */
+  function addDG(id, vec) {
+    let c = SOLV_COLS.indexOf(id);
+    if (c < 0) { SOLV_COLS.push(id); c = SOLV_COLS.length - 1; }
+    Object.keys(DG).forEach(function (k) { DG[k][c] = vec[k]; });
+  }
+  root.LNPDATA = { addDG: addDG, DG: DG, SOLV_COLS: SOLV_COLS, LIGNINS: LIGNINS, ligDG: ligDG };
+  if (typeof module !== 'undefined') module.exports = root.LNPDATA;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>'use strict';
+(function () {
+  const { Model, Sim, SOLVENTS, WATER, defaultParams, parseCurve } = LNP;
+  const { LIGNINS, ligDG } = LNPDATA;
+  const $ = function (id) { return document.getElementById(id); };
+  const clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
+  const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+
+  /* ------------------------------------------------------------------ state */
+  const P = defaultParams();
+  P.anti = { c0: 2, V0: 5, Vadd: 30, Q: 3, Vdrop: 150, rpm: 500, Np: 1.0, Dbar: 20, thold: 120 };
+  P.acidp = { c0: 2, V0: 5, Vadd: 1.0, Q: 0.5, Vdrop: 50, rpm: 500, Np: 1.0, Dbar: 20, thold: 120 };
+  const PA = function () { return ST.mode === 'acid' ? P.acidp : P.anti; };
+  P.soni = { d0: 2000, sg: 1.4, conc: 1, x: 0.86, P: 20, V: 20, f_loc: 10, t: 300 };
+  const L = { preset: 'DL' };
+  function loadLignin(key) {
+    const s = LIGNINS[key]; L.preset = key;
+    L.Mw = s.Mw; L.Mn = s.Mn; L.pdi = s.pdi; L.SGH = s.SGH.slice(); L.link = Object.assign({}, s.link);
+  }
+  loadLignin('DL');
+  const ST = {
+    mode: 'anti', solId: 'gvl', running: false, speed: 20, simTarget: 0, curves: {}, curveText: {}, soniInit: null, useCarry: false,
+    solvents: SOLVENTS.map(function (s) { return JSON.parse(JSON.stringify(s)); }), batch: {}, lastChart: 0, lastTile: 0, model: null, sim: null, cmp: []
+  };
+  const AQ = Object.assign({}, WATER, { id: 'aq', name: 'Alkaline water', conf: 'lit' });
+  const curSol = function () { return ST.solvents.find(function (s) { return s.id === ST.solId; }); };
+
+  /* ------------------------------------------------------------------ theme colours */
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    ['ink', 'muted', 'line', 'lig', 'water', 'good', 'warn', 'bad', 'panel', 'panel2', 'lig-soft', 'water-soft'].forEach(function (k) { C[k] = cs.getPropertyValue('--' + k).trim() || '#888'; });
+  }
+  function rgb(hex) {
+    hex = hex.replace('#', ''); if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+    const n = parseInt(hex, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgba(hex, a) { const c = rgb(hex); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+  function mix(h1, h2, t) { const a = rgb(h1), b = rgb(h2); return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * t) + ',' + Math.round(a[1] + (b[1] - a[1]) * t) + ',' + Math.round(a[2] + (b[2] - a[2]) * t) + ')'; }
+
+  /* ------------------------------------------------------------------ formatting */
+  function fmt(v, d) { if (v == null || !isFinite(v)) return '–'; return Math.abs(v) >= 1000 ? v.toFixed(0) : v.toFixed(d == null ? 2 : d); }
+  function sigf(v, n) { if (v == null || !isFinite(v)) return '–'; if (v === 0) return '0'; const e = Math.floor(Math.log10(Math.abs(v))); if (e >= 4 || e < -2) return v.toExponential(n - 1); return v.toPrecision(n); }
+  function sup(e) { return String(e).split('').map(function (c) { return c === '-' ? '⁻' : SUP[+c]; }).join(''); }
+  function tickLabel(v) { const e = Math.round(Math.log10(v)); return Math.abs(v - Math.pow(10, e)) < 1e-9 * v && (e > 2 || e < -1) ? '10' + sup(e) : String(+v.toPrecision(3)); }
+
+  /* ------------------------------------------------------------------ input panels */
+  function getPath(p) { const r = p.split('.'); let o = r[0] === 'P' ? P : r[0] === 'L' ? L : curSol(); for (let i = 1; i < r.length - 1; i++) o = o[r[i]]; return [o, r[r.length - 1]]; }
+  function fld(path, label, step, sub, wide) {
+    const pv = getPath(path), v = pv[0][pv[1]];
+    return '<div class="f"><label for="in_' + path + '">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</label><input type="number" id="in_' + path + '" data-path="' + path + '" step="' + (step || 'any') + '" value="' + v + '"></div>';
+  }
+  function buildProc() {
+    if (ST.mode === 'acid') {
+      $('procTitle').textContent = 'Acid precipitation';
+      $('procFields').innerHTML = '<p class="note">Lignin is dissolved in alkaline water; dilute H\u2082SO\u2084 is added dropwise and the pH, \u03b6 potential and ionic strength follow the titration. The solvent panel does not apply here.</p>' +
+        fld('P.acidp.c0', 'Lignin (mg/mL)', 0.5) + fld('P.acidp.V0', 'Alkaline solution volume (mL)', 1) + fld('P.acidp.Vadd', 'Acid added (mL)', 0.1, 'sets final pH') +
+        fld('P.acid.Cb', 'NaOH in solution (mM)', 5) + fld('P.acid.Ca', 'H\u2082SO\u2084 concentration (mM)', 5, '50 mM = 0.1 N') +
+        fld('P.acidp.Q', 'Addition rate (mL/min)', 0.1) + fld('P.acidp.Vdrop', 'Drop volume (\u00b5L)', 5) +
+        fld('P.acidp.rpm', 'Stir bar (rpm)', 50) + fld('P.acidp.Np', 'Stir bar power number', 0.1) + fld('P.acidp.Dbar', 'Stir bar length (mm)', 1) + fld('P.acidp.thold', 'Hold after addition (s)', 10) +
+        '<div class="note" style="margin-top:6px"><strong>Lignin acid\u2013base behaviour</strong></div>' +
+        fld('P.acid.Ng_phen', 'Phenolic OH (mmol/g)', 0.1) + fld('P.acid.pKa_phen', 'Phenolic pKa', 0.1) + fld('P.acid.Ng_cooh', 'Carboxylic acid (mmol/g)', 0.1) + fld('P.acid.pKa_cooh', 'Carboxylic pKa', 0.1) +
+        fld('P.acid.pHs', 'Solubility midpoint pH', 0.1, 'calibrate: where it drops') + fld('P.acid.steep', 'Solubility steepness', 0.1, 'decades per pH unit') + fld('P.acid.cn', 'Neutral-lignin solubility (mg/mL)', 0.005) + fld('P.acid.zeta_alk', '\u03b6 potential, fully ionised (mV)', 1);
+    } else if (ST.mode !== 'soni') {
+      $('procTitle').textContent = 'Antisolvent addition';
+      $('procFields').innerHTML =
+        fld('P.anti.c0', 'Lignin in solvent (mg/mL)', 0.5) + fld('P.anti.V0', 'Solvent volume (mL)', 1) + fld('P.anti.Vadd', 'Water added (mL)', 1) +
+        fld('P.anti.Q', 'Addition rate (mL/min)', 0.5) + fld('P.anti.Vdrop', 'Drop volume (µL)', 10, 'smaller drops run slower') +
+        fld('P.anti.rpm', 'Stir bar (rpm)', 50) + fld('P.anti.Np', 'Stir bar power number', 0.1, 'effective, calibrate') + fld('P.anti.Dbar', 'Stir bar length (mm)', 1) +
+        fld('P.anti.thold', 'Hold after addition (s)', 10);
+    } else {
+      $('procTitle').textContent = 'Sonication';
+      const has = !!ST.soniInit;
+      $('procFields').innerHTML =
+        '<label class="inline note"><input type="checkbox" id="useCarry" ' + (ST.useCarry && has ? 'checked' : '') + (has ? '' : ' disabled') + '> Start from the dispersion made in the antisolvent run' + (has ? '' : ' (run it first, then press "Sonicate this dispersion")') + '</label>' +
+        fld('P.soni.d0', 'Starting size (nm)', 10, 'used when not carrying a dispersion') + fld('P.soni.sg', 'Size spread (geometric SD)', 0.05) + fld('P.soni.conc', 'Particle concentration (mg/mL)', 0.5) +
+        fld('P.soni.x', 'Water fraction of the liquid', 0.05) + fld('P.soni.P', 'Power into liquid (W)', 5) + fld('P.soni.V', 'Volume (mL)', 5) +
+        fld('P.soni.f_loc', 'Cavitation concentration factor', 1, 'local ε / mean ε, calibrate') + fld('P.soni.t', 'Sonication time (s)', 30);
+    }
+  }
+  function buildPhys() {
+    $('physFields').innerHTML =
+      fld('P.gamma_mN', 'Interfacial tension (mN/m)', 0.1, 'sets the nucleation barrier') + fld('P.logA', 'Nucleation prefactor, log10 A', 0.5, 'per m³ per s') +
+      fld('P.d_prim_nm', 'Primary particle size (nm)', 5, 'from TEM; below this nothing breaks') + fld('P.sigma_a', 'Aggregate strength (Pa)', 100, 'just above primary size') + fld('P.m_str', 'Strength size exponent', 0.1, 'σ ∝ d^−m') +
+      fld('P.k_b', 'Breakage rate prefactor', 0.01) + fld('P.zeta_mV', 'ζ potential in water (mV)', 1, 'scaled by water fraction') + fld('P.ionic_mM', 'Background ionic strength (mM)', 0.5) + fld('P.pil_alpha', 'PIL salt ionisation fraction', 0.05, '0 = ignore IL ions; ionic liquids add I = α·[salt]') +
+      fld('P.hamaker_zJ', 'Hamaker constant (zJ)', 1, '10 zJ = 1e-20 J') + fld('P.mu_peak', 'Mixture viscosity bump', 0.1, '1 + b·4x(1−x)');
+  }
+  function buildLig() {
+    const c = P.cosmo, l = P.lig;
+    $('ligFields').innerHTML =
+      fld('L.Mw', 'Mw (g/mol)', 100, 'GPC, sets chain size and diffusion') + fld('P.lig.Mnuc', 'Nucleating segment (g/mol)', 100, 'sets the nucleation barrier') + fld('P.lig.rho', 'Density (kg/m³)', 10) +
+      '<div class="note" style="margin-top:4px">Composition (%): S, G, H</div><div class="f2">' +
+      ['S', 'G', 'H'].map(function (n, i) { return '<label>' + n + '<input type="number" data-path="L.SGH.' + i + '" step="1" value="' + L.SGH[i] + '"></label>'; }).join('') + '</div>' +
+      '<div class="note">Linkages (%): β-O-4, α-O-4, β-β, β-5, β-1</div><div class="f2">' +
+      ['bO4', 'aO4', 'bb', 'b5', 'b1'].map(function (n) { return '<label>' + n + '<input type="number" data-path="L.link.' + n + '" step="1" value="' + L.link[n] + '"></label>'; }).join('') + '</div>' +
+      '<div class="note" style="margin-top:6px"><strong>Solubility model</strong></div>' +
+      '<div class="f"><label for="solMode">Source<small>COSMO-RS where computed</small></label><select id="solMode"><option value="auto"' + (c.mode === 'auto' ? ' selected' : '') + '>Your ΔG_solv, HSP fallback</option><option value="hsp"' + (c.mode === 'hsp' ? ' selected' : '') + '>HSP for all</option></select></div>' +
+      fld('P.cosmo.cw', 'Solubility in water (mg/mL)', 0.001, 'calibration anchor') + fld('P.cosmo.k', 'Cooperativity k', 0.5, 'segments solvating together') + fld('P.cosmo.curv', 'Cosolvent curvature', 0.5, '+ = synergy') + fld('P.lig.cmax', 'Max solubility (mg/mL)', 10) +
+      '<div class="note">HSP fallback: δD, δP, δH, R0</div><div class="f2">' +
+      ['0', '1', '2'].map(function (i) { return '<label>δ' + 'DPH'[i] + '<input type="number" data-path="P.lig.hsp.' + i + '" step="0.1" value="' + l.hsp[i] + '"></label>'; }).join('') + '</div>' +
+      fld('P.lig.R0', 'Interaction radius R0', 0.1) + fld('P.lig.sharp', 'HSP sharpness (ln per RED)', 0.5);
+    $('ligNote').innerHTML = 'Presets are your own GPC (Table S16), S/G/H (S12) and linkage (S14) data. Mn ' + fmt(L.Mn, 0) + ', PDI ' + fmt(L.pdi, 2) + '. ΔG_solv values are from Table S5 (assumed kcal/mol).';
+  }
+  function buildSolvent() {
+    const sel = $('solSel');
+    const grp = {}; ST.solvents.forEach(function (s) { (grp[s.group || 'Other'] = grp[s.group || 'Other'] || []).push(s); });
+    sel.innerHTML = Object.keys(grp).map(function (g) { return '<optgroup label="' + g + '">' + grp[g].map(function (s) { return '<option value="' + s.id + '">' + s.name + (s.conf === 'est' ? ' (est.)' : '') + '</option>'; }).join('') + '</optgroup>'; }).join('');
+    sel.value = ST.solId;
+    const s = curSol();
+    $('solHSP').innerHTML = ['δD', 'δP', 'δH'].map(function (n, i) { return '<label>' + n + '<input type="number" data-path="Sol.hsp.' + i + '" step="0.1" value="' + s.hsp[i] + '"></label>'; }).join('');
+    $('solProps').innerHTML = [['mu', 'μ mPa·s'], ['rho', 'ρ kg/m³'], ['epsr', 'εr']].map(function (a) { return '<label>' + a[1] + '<input type="number" data-path="Sol.' + a[0] + '" step="any" value="' + s[a[0]] + '"></label>'; }).join('');
+    $('curveTxt').value = ST.curveText[s.id] || '';
+    $('curveMsg').textContent = ST.curves[s.id] ? 'Curve in use.' : '';
+  }
+  function solInfo() {
+    const s = curSol(), m = ST.model; let b = '';
+    const src = m.source === 'curve' ? '<span class="badge good">Your pasted COSMO-RS curve</span>' : m.source === 'cosmo' ? '<span class="badge good">Your openCOSMO-RS ΔG_solv (Table S5)</span>' : '<span class="badge warn">HSP estimate, not COSMO-RS</span>';
+    b += src + ' ' + (s.conf === 'est' ? '<span class="badge warn">properties estimated</span>' : '<span class="badge">literature properties</span>');
+    if (s.misc === 'limited') b += ' <span class="badge bad">only ~1.3 wt% miscible with water</span>';
+    let note = '';
+    if (s.misc === 'limited') note += '<p class="warn-box">Dichloromethane forms two phases with water. The single-phase model is not valid once water exceeds a few percent; treat results as indicative only.</p>';
+    if (m.csat(0) < ST.c0now) note += '<p class="warn-box">At c0 = ' + fmt(ST.c0now, 1) + ' mg/mL the lignin is above its solubility in the neat solvent (' + sigf(m.csat(0), 2) + ' mg/mL), so it never fully dissolves.</p>';
+    if (s.id === 'ean') note += '<p class="note">Your paper uses ethanolammonium nitrate [EOA][N], listed separately; this entry is ethylammonium nitrate.</p>';
+    $('solInfo').innerHTML = b + note;
+  }
+
+  document.addEventListener('input', function (e) {
+    const t = e.target;
+    if (t.id === 'solMode') { P.cosmo.mode = t.value; schedule(); return; }
+    if (t.id === 'useCarry') { ST.useCarry = t.checked; schedule(); return; }
+    if (t.dataset && t.dataset.path) {
+      const pv = getPath(t.dataset.path), v = parseFloat(t.value);
+      if (!isFinite(v)) return;
+      if (pv[0] === L) { /* nothing */ }
+      pv[0][pv[1]] = v;
+      if (t.dataset.path.charAt(0) === 'L') L.preset = 'custom', $('ligSel').value = 'custom';
+      schedule();
+    }
+  });
+  let timer = null;
+  function schedule() { clearTimeout(timer); timer = setTimeout(rebuild, 160); }
+
+  /* ------------------------------------------------------------------ build / rebuild */
+  function rebuild() {
+    P.lig.Mw = L.Mw; P.dG = ligDG(L.SGH, L.link);
+    ST.c0now = ST.mode !== 'soni' ? PA().c0 : 0;
+    const acidUse = ST.mode === 'acid' || (ST.mode === 'soni' && ST.useCarry && ST.soniInit && ST.soniInit.acid);
+    P.acid.on = acidUse; P.acid.c0 = P.acidp.c0;
+    ST.model = acidUse ? new Model(P, AQ, null) : new Model(P, curSol(), ST.curves[ST.solId] || null);
+    document.querySelector('#solSel').closest('details').style.display = acidUse ? 'none' : '';
+    $('cmpSec').style.display = ST.mode === 'acid' ? 'none' : '';
+    makeSim();
+    ST.batch = {};
+    summary();
+    solInfo(); drawTable(); buildTiles(); ST.lastChart = 0; ST.lastTile = 0;
+    updateRunBtn(); $('btnCarry').style.display = ST.mode !== 'soni' ? '' : 'none';
+    updateRunStat();
+  }
+  function makeSim() {
+    const o = Object.assign({}, ST.mode === 'acid' ? P.acidp : P[ST.mode]);
+    if (ST.mode !== 'soni') o.Vdrop = Math.max(o.Vdrop, o.Vadd * 1000 / 900);
+    if (ST.mode === 'acid') o.Vdrop = Math.min(o.Vdrop, o.Vadd * 1000);
+    const init = ST.mode === 'soni' && ST.useCarry && ST.soniInit ? ST.soniInit : null;
+    ST.sim = new Sim(ST.model, ST.mode === 'acid' ? 'anti' : ST.mode, o, init);
+    ST.simTarget = 0; SC.dropSeen = 0; SC.rings.length = 0; ST.running = false;
+  }
+  function setMode(m) {
+    ST.mode = m; $('tab-anti').setAttribute('aria-pressed', m === 'anti'); $('tab-soni').setAttribute('aria-pressed', m === 'soni'); $('tab-acid').setAttribute('aria-pressed', m === 'acid');
+    buildProc(); rebuild();
+  }
+
+  /* ------------------------------------------------------------------ tiles */
+  function tileSpec() {
+    const sim = ST.sim;
+    if (ST.mode === 'acid') return [['z', 'Z-average', 'nm'], ['pdi', 'PDI', ''], ['pH', 'pH (bulk)', ''], ['S', 'Supersaturation S (bulk)', ''], ['prec', 'Lignin precipitated', '%'], ['zeta', '\u03b6 potential', 'mV'], ['tm', 'Plume mixing time', 'ms'], ['eta', 'Kolmogorov scale', '\u00b5m']];
+    if (ST.mode !== 'soni') return [['z', 'Z-average', 'nm'], ['pdi', 'PDI', ''], ['x', 'Water fraction', ''], ['S', 'Supersaturation S (bulk)', ''], ['prec', 'Lignin precipitated', '%'], ['eps', 'Stirring ε', 'W/kg'], ['tm', 'Plume mixing time', 'ms'], ['eta', 'Kolmogorov scale', 'µm']];
+    return [['z', 'Z-average', 'nm'], ['pdi', 'PDI', ''], ['x', 'Water fraction', ''], ['prec', 'Lignin in particles', '%'], ['eps', 'Cavitation ε', 'W/kg'], ['gd', 'Shear rate', '1/s'], ['eta', 'Kolmogorov scale', 'µm'], ['dc', 'Largest unbroken size', 'nm']];
+  }
+  function buildTiles() {
+    $('tiles').innerHTML = tileSpec().map(function (t) { return '<div class="tile"><div class="k">' + t[1] + '</div><div><span class="v" id="tv_' + t[0] + '">–</span><span class="u">' + t[2] + '</span></div></div>'; }).join('');
+  }
+  function critSize(eps, x) {
+    const m = ST.model; let prev = false;
+    for (let i = 0; i < 400; i++) {
+      const d = 1.5e-9 * Math.pow(2000, i / 399);
+      if (d <= m.dPrim) continue;
+      if (m.stress(d, eps, x) > m.strength(d)) return d;
+    }
+    return null;
+  }
+  function updateTiles() {
+    const sim = ST.sim, m = ST.model, z = sim.bulk, d = m.dls(z.N), x = z.x, S = z.c / m.csat(x);
+    const set = function (k, v) { const e = $('tv_' + k); if (e) e.textContent = v; };
+    const phi = sim.hist.length ? sim.hist[sim.hist.length - 1].phi : 0;
+    set('pH', m.acidOn ? fmt(m.pH(x), 2) : ''); set('zeta', m.acidOn ? fmt(m.zetaMV(x), 0) : ''); set('z', fmt(d.z * 1e9, 0)); set('pdi', fmt(d.pdi, 2)); set('x', fmt(x, 3)); set('S', S > 100 ? sigf(S, 2) : fmt(S, 2));
+    set('prec', fmt(clamp(phi, 0, 1) * 100, 0)); set('eps', sigf(sim.eps, 2));
+    set('tm', fmt(sim.tmix(x) * 1e3, sim.tmix(x) < 0.01 ? 1 : 0));
+    const eta = Math.pow(Math.pow(m.nu(x), 3) / sim.eps, 0.25); set('eta', fmt(eta * 1e6, 1));
+    set('gd', sigf(Math.sqrt(sim.eps / m.nu(x)), 2));
+    const dc = critSize(sim.eps, x); set('dc', dc ? fmt(dc * 1e9, 0) : 'none');
+    updateRunStat();
+  }
+  function updateRunStat() {
+    const sim = ST.sim; if (!sim) return;
+    let s = 't = ' + sim.t.toFixed(0) + ' / ' + sim.T.toFixed(0) + ' s';
+    if (ST.mode !== 'soni') s += ' · drop ' + Math.min(sim.dropIdx + (sim.plume ? 1 : 0), sim.nd) + ' / ' + sim.nd;
+    s += ' · mass balance ' + sim.closure().toFixed(3);
+    $('runStat').textContent = s;
+  }
+  function updateRunBtn() { $('btnRun').textContent = ST.sim && ST.sim.done ? 'Replay' : ST.running ? 'Pause' : 'Run'; }
+
+  /* ------------------------------------------------------------------ caption */
+  function caption() {
+    const sim = ST.sim, m = ST.model, z = sim.bulk, x = z.x, S = z.c / m.csat(x), r = sim.last;
+    if (ST.mode === 'acid') {
+      const pHb = m.pH(x);
+      if (sim.done) return 'Finished at pH ' + fmt(pHb, 1) + ': ' + fmt(m.dls(z.N).z * 1e9, 0) + ' nm Z-average. At \u03b6 = ' + fmt(m.zetaMV(x), 0) + ' mV the DLVO barrier is weak or gone, so particles stick on contact.';
+      if (sim.phase === 'hold') return 'Hold at pH ' + fmt(pHb, 1) + ' (\u03b6 ' + fmt(m.zetaMV(x), 0) + ' mV): aggregation continues only if the charge barrier is low.';
+      const p = sim.plume;
+      if (p && p.c / m.csat(p.x) > 1.0001) return 'Drop ' + (sim.dropIdx + 1) + ': inside the acid plume the local pH is ' + fmt(m.pH(p.x), 1) + ', so lignin protonates and precipitates before the acid is mixed in (' + fmt(sim.tm * 1e3, 0) + ' ms).';
+      if (S > 1.0001) return 'Bulk pH ' + fmt(pHb, 1) + ' is below the solubility midpoint; S = ' + sigf(S, 2) + '. Growth and aggregation compete.';
+      return 'Bulk pH ' + fmt(pHb, 1) + ': lignin phenolic groups are mostly deprotonated, so it stays dissolved and charged (\u03b6 ' + fmt(m.zetaMV(x), 0) + ' mV).';
+    }
+    if (ST.mode !== 'soni') {
+      if (sim.done) return 'Finished. ' + fmt(m.dls(z.N).z * 1e9, 0) + ' nm Z-average at water fraction ' + fmt(x, 2) + '. Aggregation stopped where the DLVO barrier became larger than thermal energy.';
+      if (sim.phase === 'hold') return 'Hold: no more water is added. Particles keep colliding until the electrostatic barrier stops them.';
+      const p = sim.plume;
+      if (p) {
+        const Sp = p.c / m.csat(p.x);
+        if (Sp > 1.0001 && r.J > 1e10) return 'Drop ' + (sim.dropIdx + 1) + ': the plume where water meets lignin solution is supersaturated (S = ' + sigf(Sp, 2) + '), so nuclei form here first. It mixes away in about ' + fmt(sim.tm * 1e3, 0) + ' ms.';
+        if (Sp > 1.0001) return 'Drop ' + (sim.dropIdx + 1) + ': plume S = ' + sigf(Sp, 2) + ', nucleation is slow at this barrier height.';
+      }
+      if (S > 1.0001) return 'Bulk is supersaturated (S = ' + sigf(S, 2) + '). Growth and aggregation compete for the dissolved lignin.';
+      return 'Bulk is below saturation (S = ' + fmt(S, 2) + ', water fraction ' + fmt(x, 2) + '). Lignin stays dissolved while water is diluted in.';
+    }
+    const eps = sim.eps, dc = critSize(eps, x), d = m.dls(z.N);
+    if (sim.done) return 'Finished. Particles larger than about ' + (dc ? fmt(dc * 1e9, 0) + ' nm' : 'the primary size') + ' cannot survive this cavitation shear.';
+    if (!dc) return 'Shear stress stays below aggregate strength at every size, so nothing breaks at this power.';
+    return 'Cavitation stress exceeds aggregate strength above ' + fmt(dc * 1e9, 0) + ' nm, so larger aggregates break into fragments. Current Z-average ' + fmt(d.z * 1e9, 0) + ' nm.';
+  }
+
+  /* ------------------------------------------------------------------ beaker scene */
+  const SC = { parts: [], chains: [], rings: [], stirAng: 0, dropSeen: 0, dropT0: -1e9, cdf: null, cdfTime: 0, frame: 0, vis: 0, bubbles: [] };
+  for (let i = 0; i < 260; i++) SC.parts.push({ x: Math.random(), y: Math.random(), u: (i + 0.5) / 260, vx: 0, vy: 0, s: Math.random() });
+  for (let i = 0; i < 150; i++) SC.chains.push({ x: Math.random(), y: Math.random(), a: Math.random() * 6.28, s: Math.random() });
+  SC.parts.forEach(function (p, i) { p.u = ((i * 0.61803398875) % 1); });
+  const sizePx = function (d) { return 1.2 + 12 * Math.pow(clamp(Math.log10(d / 1.5e-9) / 3.3, 0, 1), 1.6); };
+
+  function updateCDF() {
+    const m = ST.model, N = ST.sim.bulk.N; const cdf = new Float64Array(m.nb); let s = 0;
+    for (let i = 0; i < m.nb; i++) { s += N[i] * m.v[i]; cdf[i] = s; }
+    SC.tot = s; if (s > 0) for (let i = 0; i < m.nb; i++) cdf[i] /= s; SC.cdf = cdf;
+  }
+  function quantileD(u) {
+    const m = ST.model, c = SC.cdf; let k = 0; while (k < m.nb - 1 && c[k] < u) k++;
+    const lo = k > 0 ? c[k - 1] : 0, f = c[k] > lo ? (u - lo) / (c[k] - lo) : 0.5;
+    return m.d[k] * Math.pow(2, (f - 0.5) / 5);
+  }
+  function ring(x, y, col, life) { if (SC.rings.length < 60) SC.rings.push({ x: x, y: y, t: 0, life: life || 0.7, col: col }); }
+
+  function drawScene(ts, dt) {
+    const cv = $('scene'), r = cv.getBoundingClientRect(); if (r.width < 10) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = r.width, H = r.height, sim = ST.sim, m = ST.model, z = sim.bulk, anti = ST.mode !== 'soni';
+    g.clearRect(0, 0, W, H);
+    const wide = W > 640, bx0 = W * (wide ? 0.05 : 0.04), bx1 = W * (wide ? 0.64 : 0.96), by0 = H * 0.14, by1 = H * 0.93, bw = bx1 - bx0, bh = by1 - by0;
+    const frac = anti ? clamp(sim.Vb / (sim.V0 + sim.Vadd), 0.1, 1) : 1;
+    const lvl = anti ? 0.32 + 0.6 * frac : 0.86, top = by1 - bh * lvl;
+    // state
+    const x = z.x, c0 = anti ? sim.c0 : Math.max(sim.mass0 / sim.V, 1e-9);
+    const mp = sim.hist.length ? clamp(sim.hist[sim.hist.length - 1].phi, 0, 1) : 0;
+    const diss = anti ? clamp(z.c / (sim.c0 * sim.V0 / sim.Vb), 0, 1) : clamp(z.c / m.csat(x) * 0.1, 0, 0.2);
+    // liquid
+    g.save();
+    g.beginPath(); g.moveTo(bx0 + 4, top); g.lineTo(bx1 - 4, top); g.lineTo(bx1 - 4, by1 - 16); g.quadraticCurveTo(bx1 - 4, by1 - 4, bx1 - 20, by1 - 4); g.lineTo(bx0 + 20, by1 - 4); g.quadraticCurveTo(bx0 + 4, by1 - 4, bx0 + 4, by1 - 16); g.closePath(); g.clip();
+    g.fillStyle = rgba(C['water-soft'], m.acidOn ? 0.35 : 0.30 + 0.6 * x); g.fillRect(bx0, top, bw, by1 - top);
+    g.fillStyle = rgba(C.lig, 0.50 * diss * (1 - 0.35 * x)); g.fillRect(bx0, top, bw, by1 - top);
+    g.fillStyle = rgba(mp > 0 ? C.ink : C.panel, Math.min(0.30, mp * 0.28)); g.fillRect(bx0, top, bw, by1 - top);
+    // plume
+    const p = sim.plume;
+    if (anti && p) {
+      const Vp = sim.Vd * Math.exp(p.t / sim.tm), rad = 14 + 95 * Math.sqrt(clamp(Vp / (0.25 * sim.Vb), 0, 1)), px = bx0 + bw * 0.3, py = top + 14 + rad * 0.4;
+      const gr = g.createRadialGradient(px, py, 0, px, py, rad);
+      gr.addColorStop(0, rgba(C.water, 0.55 * p.x + 0.05)); gr.addColorStop(1, rgba(C.water, 0));
+      g.fillStyle = gr; g.fillRect(px - rad, py - rad, rad * 2, rad * 2);
+      const Sp = p.c / m.csat(p.x);
+      if (Sp > 1.0001) { g.strokeStyle = rgba(C.warn, 0.8); g.setLineDash([3, 4]); g.lineWidth = 1.4; g.beginPath(); g.arc(px, py, rad * 0.8, 0, 6.283); g.stroke(); g.setLineDash([]); }
+      if (sim.last.J > 1e8 && Math.random() < 0.5) ring(px + (Math.random() - 0.5) * rad, py + (Math.random() - 0.5) * rad, C.warn, 0.5);
+    }
+    // flow field + particles
+    const cx = (bx0 + bx1) / 2, cy = top + (by1 - top) * 0.55, fs = anti ? 5 + 9 * Math.log10(1 + sim.eps * 25) : 3;
+    if (!SC.cdf || ts - SC.cdfTime > 150) { updateCDF(); SC.cdfTime = ts; }
+    const nVis = SC.tot > 0 ? Math.round(SC.parts.length * clamp(Math.sqrt(anti ? mp : 1), 0, 1)) : 0;
+    const jit = anti ? 10 : 14 + 22 * Math.log10(1 + sim.eps / 500);
+    const probeX = cx, probeTipY = top + (by1 - top) * 0.3;
+    const big = [];
+    for (let i = 0; i < SC.parts.length; i++) {
+      const q = SC.parts[i];
+      if (q.fx === undefined) { q.fx = Math.random(); q.fy = Math.random(); }
+      const depth = Math.max(by1 - top, 20);
+      q.px = bx0 + 10 + q.fx * (bw - 20); q.py = top + 8 + q.fy * (depth - 18);
+      const dx = q.px - cx, dy = q.py - cy, rr = Math.hypot(dx, dy) + 1;
+      if (anti) { q.vx += (-dy / rr * fs - q.vx) * 0.04; q.vy += (dx / rr * fs * 0.6 - q.vy) * 0.04; }
+      else { const dist = Math.hypot(q.px - probeX, q.py - probeTipY); const kick = jit * Math.exp(-dist / 90); q.vx += (Math.random() - 0.5) * kick * 0.6 - q.vx * 0.06; q.vy += (Math.random() - 0.5) * kick * 0.6 - q.vy * 0.06; }
+      q.fx += (q.vx + (Math.random() - 0.5) * jit) * dt / (bw - 20); q.fy += (q.vy + (Math.random() - 0.5) * jit) * dt / (depth - 18);
+      if (q.fx < 0) { q.fx = 0; q.vx = Math.abs(q.vx); } if (q.fx > 1) { q.fx = 1; q.vx = -Math.abs(q.vx); }
+      if (q.fy < 0) { q.fy = 0; q.vy = Math.abs(q.vy); } if (q.fy > 1) { q.fy = 1; q.vy = -Math.abs(q.vy); }
+      if (i >= nVis) continue;
+      const d = quantileD(q.u), rpx = sizePx(d);
+      g.fillStyle = mix(C['lig-soft'], C.lig, clamp(Math.log10(d / 5e-9) / 2.8, 0, 1)); g.beginPath(); g.arc(q.px, q.py, rpx, 0, 6.283); g.fill();
+      g.strokeStyle = rgba(C.ink, 0.35); g.lineWidth = 0.7; g.stroke();
+      if (d > m.dPrim * 1.2) big.push(q);
+      q.d = d; q.r = rpx;
+    }
+    // dissolved chains (collapse as supersaturation rises)
+    const S = z.c / m.csat(x), collapse = 1 / (1 + 0.45 * Math.max(0, Math.log(Math.max(S, 1))));
+    const nCh = Math.round(SC.chains.length * (anti ? clamp(diss * (1 - 0.5 * Math.max(0, x - 0.3)), 0, 1) : 0.15));
+    g.lineWidth = 1.1; g.strokeStyle = rgba(C.lig, 0.55);
+    for (let i = 0; i < nCh; i++) {
+      const h = SC.chains[i];
+      if (h.fx === undefined) { h.fx = Math.random(); h.fy = Math.random(); }
+      const dep = Math.max(by1 - top, 20);
+      h.px = bx0 + 8 + h.fx * (bw - 16); h.py = top + 6 + h.fy * (dep - 14);
+      h.fx += ((Math.random() - 0.5) * 30 + (anti ? -(h.py - cy) / 80 * fs : 0)) * dt / (bw - 16);
+      h.fy += ((Math.random() - 0.5) * 30 + (anti ? (h.px - cx) / 80 * fs * 0.6 : 0)) * dt / (dep - 14);
+      h.fx = clamp(h.fx, 0, 1); h.fy = clamp(h.fy, 0, 1); h.a += (Math.random() - 0.5) * 2 * dt;
+      g.beginPath(); const L0 = 11 * collapse + 2;
+      for (let k = 0; k <= 5; k++) { const t = k / 5, wx = h.px + Math.cos(h.a) * (t - 0.5) * L0 * 2 - Math.sin(h.a) * Math.sin(t * 9 + h.s * 6) * 3 * collapse, wy = h.py + Math.sin(h.a) * (t - 0.5) * L0 * 2 + Math.cos(h.a) * Math.sin(t * 9 + h.s * 6) * 3 * collapse; if (k === 0) g.moveTo(wx, wy); else g.lineTo(wx, wy); }
+      g.stroke();
+    }
+    // events as rings
+    const act = function (v, lo, hi) { return clamp((Math.log10(Math.max(v, 1)) - lo) / (hi - lo), 0, 1); };
+    const aN = act(sim.last.J, 6, 26), aA = act(sim.last.agg, 6, 26), aB = act(sim.last.brk, 4, 22);
+    if (SC.tot > 0 && nVis > 4) {
+      if (Math.random() < aA * 0.35) { const q = SC.parts[(Math.random() * nVis) | 0]; ring(q.px, q.py, C.lig, 0.55); }
+      if (big.length && Math.random() < aB * 0.7) {
+        const q = big[(Math.random() * big.length) | 0]; ring(q.px, q.py, C.bad, 0.7);
+        for (let k = 0; k < 4; k++) SC.rings.push({ x: q.px, y: q.py, t: 0, life: 0.6, col: C.bad, frag: true, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 90 });
+      }
+    }
+    if (aN > 0.1 && Math.random() < aN * 0.4) ring(bx0 + bw * 0.3 + (Math.random() - 0.5) * 80, top + 40 + Math.random() * 60, C.warn, 0.5);
+    for (let i = SC.rings.length - 1; i >= 0; i--) {
+      const o = SC.rings[i]; o.t += dt; if (o.t > o.life) { SC.rings.splice(i, 1); continue; }
+      const k = o.t / o.life; g.strokeStyle = rgba(o.col, 1 - k); g.fillStyle = rgba(o.col, 1 - k);
+      if (o.frag) { o.x += o.vx * dt; o.y += o.vy * dt; g.beginPath(); g.arc(o.x, o.y, 2, 0, 6.283); g.fill(); } else { g.lineWidth = 1.6; g.beginPath(); g.arc(o.x, o.y, 3 + 14 * k, 0, 6.283); g.stroke(); }
+    }
+    // stir bar or probe
+    if (anti) {
+      SC.stirAng += dt * 6.283 * Math.min(sim.o.rpm / 60, 10) * 0.35;
+      const len = bw * 0.22 * Math.abs(Math.cos(SC.stirAng)) + 6, y = by1 - 16;
+      g.fillStyle = rgba(C.ink, 0.75); g.beginPath(); g.roundRect ? g.roundRect(cx - len / 2, y - 5, len, 10, 5) : g.rect(cx - len / 2, y - 5, len, 10); g.fill();
+    } else {
+      g.fillStyle = rgba(C.ink, 0.8); g.fillRect(probeX - 9, by0 - 8, 18, probeTipY - by0 + 8 - 8);
+      g.beginPath(); g.moveTo(probeX - 9, probeTipY - 8); g.lineTo(probeX + 9, probeTipY - 8); g.lineTo(probeX + 4, probeTipY); g.lineTo(probeX - 4, probeTipY); g.fill();
+      const nb = Math.round(6 + 14 * clamp(Math.log10(1 + sim.eps / 300) / 2.3, 0, 1));
+      for (let i = 0; i < nb; i++) { const a = Math.random() * 6.283, rr = Math.random() * 60, bx = probeX + Math.cos(a) * rr * 0.9, by = probeTipY + 10 + Math.abs(Math.sin(a)) * rr; g.strokeStyle = rgba(C.water, 0.55); g.lineWidth = 1; g.beginPath(); g.arc(bx, by, 1 + Math.random() * 3, 0, 6.283); g.stroke(); }
+    }
+    g.restore();
+    // beaker outline
+    g.strokeStyle = rgba(C.ink, 0.5); g.lineWidth = 2; g.beginPath(); g.moveTo(bx0, by0); g.lineTo(bx0, by1 - 18); g.quadraticCurveTo(bx0, by1, bx0 + 20, by1); g.lineTo(bx1 - 20, by1); g.quadraticCurveTo(bx1, by1, bx1, by1 - 18); g.lineTo(bx1, by0); g.stroke();
+    g.strokeStyle = rgba(C.ink, 0.35); g.lineWidth = 1; g.beginPath(); g.moveTo(bx0 + 4, top); g.lineTo(bx1 - 4, top); g.stroke();
+    // dropper and falling drop
+    if (anti) {
+      if (sim.dropEvent !== SC.dropSeen) { SC.dropSeen = sim.dropEvent; SC.dropT0 = ts; }
+      const px = bx0 + bw * 0.3; g.fillStyle = rgba(C.ink, 0.7); g.fillRect(px - 5, by0 - 22, 10, 16); g.beginPath(); g.moveTo(px - 5, by0 - 6); g.lineTo(px + 5, by0 - 6); g.lineTo(px, by0 + 2); g.fill();
+      const k = (ts - SC.dropT0) / 320;
+      if (k >= 0 && k < 1) { g.fillStyle = rgba(C.water, 0.9); g.beginPath(); g.arc(px, by0 + 4 + (top + 10 - by0) * k, 4, 0, 6.283); g.fill(); }
+    }
+    // water gauge and size ruler
+    const gx = bx1 + 14, gy0 = by0 + 20, gy1 = by1 - 10;
+    if (wide) {
+      g.fillStyle = rgba(C.line, 0.6); g.fillRect(gx, gy0, 10, gy1 - gy0); g.fillStyle = C.water; const gf = m.acidOn ? m.pH(x) / 14 : x; g.fillRect(gx, gy1 - (gy1 - gy0) * gf, 10, (gy1 - gy0) * gf);
+      g.fillStyle = C.muted; g.font = '11px ' + getComputedStyle(document.body).fontFamily; g.textAlign = 'left'; g.fillText(m.acidOn ? 'pH' : 'water', gx - 4, gy0 - 6); g.fillText(m.acidOn ? m.pH(x).toFixed(1) : Math.round(x * 100) + '%', gx + 14, gy1 - (gy1 - gy0) * gf + 4);
+      const ds = [10e-9, 100e-9, 1e-6], lab = ['10 nm', '100 nm', '1 µm']; let rx = gx + 62; const ry = H * 0.60;
+      g.fillText('particle scale', rx - 40, ry - 24);
+      ds.forEach(function (d, i) { const rp = sizePx(d); g.fillStyle = mix(C['lig-soft'], C.lig, clamp(Math.log10(d / 5e-9) / 2.8, 0, 1)); g.beginPath(); g.arc(rx + i * 50, ry, rp, 0, 6.283); g.fill(); g.strokeStyle = rgba(C.ink, 0.35); g.stroke(); g.fillStyle = C.muted; g.textAlign = 'center'; g.fillText(lab[i], rx + i * 50, ry + 24); });
+    }
+    // meters
+    const mv = function (id, vid, a, raw) { $(id).style.width = Math.round(a * 100) + '%'; $(vid).textContent = raw > 1 ? Math.log10(raw).toFixed(0) : '0'; };
+    mv('mN', 'vN', aN, sim.last.J); mv('mA', 'vA', aA, sim.last.agg); mv('mB', 'vB', aB, sim.last.brk);
+  }
+
+  /* ------------------------------------------------------------------ charts */
+  function plot(cv, o) {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.max(40, r.width), h = Math.max(40, r.height);
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    const pad = { l: 50, r: o.y2 ? 40 : 12, t: 8, b: 34 };
+    const X = o.xlog ? Math.log10 : function (v) { return v; }, Y = o.ylog ? Math.log10 : function (v) { return v; };
+    const x0 = X(o.x[0]), x1 = X(o.x[1]), y0 = Y(o.y[0]), y1 = Y(o.y[1]);
+    const fx = function (v) { return pad.l + (X(v) - x0) / (x1 - x0) * (w - pad.l - pad.r); };
+    const fy = function (v) { return h - pad.b - (Y(v) - y0) / (y1 - y0) * (h - pad.t - pad.b); };
+    g.font = '11px ' + getComputedStyle(document.body).fontFamily; g.fillStyle = C.muted; g.strokeStyle = rgba(C.line, 0.9); g.lineWidth = 1;
+    const ticks = function (lo, hi, log) { const t = []; if (log) { for (let e = Math.ceil(Math.log10(lo) - 1e-9); e <= Math.floor(Math.log10(hi) + 1e-9); e++) t.push(Math.pow(10, e)); } else { const span = hi - lo, st = Math.pow(10, Math.floor(Math.log10(span / 4))), m = span / 4 / st, step = (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * st; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toPrecision(10)); } return t; };
+    g.textAlign = 'right';
+    ticks(o.y[0], o.y[1], o.ylog).forEach(function (v) { const y = fy(v); g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke(); g.fillText(o.ylog ? tickLabel(v) : String(+v.toPrecision(3)), pad.l - 5, y + 4); });
+    g.textAlign = 'center';
+    ticks(o.x[0], o.x[1], o.xlog).forEach(function (v) { const x = fx(v); g.beginPath(); g.moveTo(x, pad.t); g.lineTo(x, h - pad.b); g.stroke(); g.fillText(o.xlog ? tickLabel(v) : String(+v.toPrecision(3)), x, h - pad.b + 14); });
+    if (o.y2) { g.textAlign = 'left'; [0, 0.5, 1].forEach(function (v) { const y = h - pad.b - v * (h - pad.t - pad.b); g.fillText(String(v), w - pad.r + 5, y + 4); }); }
+    g.fillStyle = C.muted; g.textAlign = 'center'; g.fillText(o.xl || '', pad.l + (w - pad.l - pad.r) / 2, h - 4);
+    g.save(); g.translate(11, pad.t + (h - pad.t - pad.b) / 2); g.rotate(-Math.PI / 2); g.fillText(o.yl || '', 0, 0); g.restore();
+    if (o.y2) { g.save(); g.translate(w - 6, pad.t + (h - pad.t - pad.b) / 2); g.rotate(-Math.PI / 2); g.fillText(o.y2, 0, 0); g.restore(); }
+    return { g: g, w: w, h: h, pad: pad, fx: fx, fy: fy, y2: function (v) { return h - pad.b - clamp(v, 0, 1) * (h - pad.t - pad.b); },
+      clip: function () { g.save(); g.beginPath(); g.rect(pad.l, pad.t, w - pad.l - pad.r, h - pad.t - pad.b); g.clip(); }, unclip: function () { g.restore(); } };
+  }
+  function line(c, xs, ys, col, wd, dash, fy) {
+    const g = c.g; g.strokeStyle = col; g.lineWidth = wd || 1.6; g.setLineDash(dash || []); g.beginPath(); let on = false;
+    for (let i = 0; i < xs.length; i++) { if (!isFinite(ys[i]) || ys[i] <= 0 && c.logy) { on = false; continue; } const px = c.fx(xs[i]), py = (fy || c.fy)(ys[i]); if (!on) { g.moveTo(px, py); on = true; } else g.lineTo(px, py); }
+    g.stroke(); g.setLineDash([]);
+  }
+  function label(c, text, x, y, col, align) { c.g.fillStyle = col || C.ink; c.g.textAlign = align || 'left'; c.g.fillText(text, x, y); }
+
+  function chartSol() {
+    const m = ST.model, sim = ST.sim, anti = ST.mode !== 'soni';
+    const c0 = anti ? PA().c0 : P.soni.conc;
+    const c = plot($('c-sol'), { x: [0, 1], y: [1e-3, Math.max(P.lig.cmax * 3, c0 * 3, 10)], ylog: true, xl: m.acidOn ? 'acid volume fraction' : 'water fraction (antisolvent volume fraction)', yl: 'lignin, mg/mL' });
+    c.logy = true; const xs = []; for (let i = 0; i <= 200; i++) xs.push(i / 200);
+    c.clip();
+    // other solvents, faint
+    ST.cmp.forEach(function (e) { if (e.id !== ST.solId) line(c, xs, xs.map(function (x) { return e.model.csat(x); }), rgba(C.muted, 0.35), 1); });
+    const cs = xs.map(function (x) { return m.csat(x); });
+    c.g.fillStyle = rgba(C.lig, 0.12); c.g.beginPath(); c.g.moveTo(c.fx(0), c.pad.t); xs.forEach(function (x, i) { c.g.lineTo(c.fx(x), c.fy(cs[i])); }); c.g.lineTo(c.fx(1), c.pad.t); c.g.closePath(); c.g.fill();
+    line(c, xs, cs, C.lig, 2.4);
+    if (anti) {
+      line(c, xs, xs.map(function (x) { return c0 * (1 - x); }), C.water, 1.4, [5, 4]);
+      const xc = m.xCrit(c0); if (xc != null) { c.g.strokeStyle = rgba(C.water, 0.7); c.g.setLineDash([2, 3]); c.g.beginPath(); c.g.moveTo(c.fx(xc), c.pad.t); c.g.lineTo(c.fx(xc), c.h - c.pad.b); c.g.stroke(); c.g.setLineDash([]); }
+      const hx = sim.hist.map(function (h) { return h.x; }), hy = sim.hist.map(function (h) { return h.c; }); line(c, hx, hy, C.ink, 1.6);
+      const z = sim.bulk; c.g.fillStyle = C.ink; c.g.beginPath(); c.g.arc(c.fx(z.x), c.fy(Math.max(z.c, 1.2e-3)), 4, 0, 6.283); c.g.fill();
+      if (sim.plume) { const p = sim.plume; c.g.strokeStyle = C.warn; c.g.lineWidth = 2; c.g.beginPath(); c.g.arc(c.fx(p.x), c.fy(Math.max(p.c, 1.2e-3)), 5, 0, 6.283); c.g.stroke(); }
+    } else { const x = sim.bulk.x; c.g.fillStyle = C.ink; c.g.beginPath(); c.g.arc(c.fx(x), c.fy(clamp(c0, 1.2e-3, 1e3)), 4, 0, 6.283); c.g.fill(); }
+    c.unclip();
+    label(c, 'supersaturated', c.pad.l + 8, c.pad.t + 16, C.lig);
+    label(c, 'dissolved', c.fx(0.03), c.h - c.pad.b - 8, C.muted);
+    label(c, m.source === 'curve' ? 'your curve' : m.source === 'cosmo' ? 'openCOSMO-RS ΔG model' : 'HSP estimate', c.w - c.pad.r - 4, c.pad.t + 16, C.lig, 'right');
+    if (anti) { const xc = m.xCrit(c0); $('p-sol').textContent = m.acidOn ? (xc == null ? 'Lignin is never dissolved at this pH range.' : 'Saturation is crossed at acid fraction ' + fmt(xc, 3) + ' (pH ' + fmt(m.pH(xc), 1) + '). Black: simulated bulk; orange ring: acid plume.') : xc == null ? 'Lignin is above its solubility even in the neat solvent.' : 'Diluting alone crosses saturation at water fraction ' + fmt(xc, 2) + ' (blue dashed: concentration if nothing precipitated; black: simulated bulk; orange ring: plume).'; }
+    else $('p-sol').textContent = 'Solubility curve for the selected solvent; faint lines are the other solvents. Dot: current liquid.';
+  }
+  function chartPSD() {
+    const m = ST.model, N = ST.sim.bulk.N; let sv = 0, si = 0; const wv = new Float64Array(m.nb), wi = new Float64Array(m.nb);
+    for (let i = 0; i < m.nb; i++) { wv[i] = N[i] * m.v[i]; wi[i] = N[i] * m.v[i] * m.v[i]; sv += wv[i]; si += wi[i]; }
+    let mx = 0.05; if (sv > 0) for (let i = 0; i < m.nb; i++) { wv[i] /= sv; wi[i] /= si; mx = Math.max(mx, wv[i], wi[i]); }
+    const c = plot($('c-psd'), { x: [1, 4000], y: [0, Math.min(1, mx * 1.15)], xlog: true, xl: 'diameter, nm', yl: 'fraction per size bin' });
+    if (sv <= 0) { label(c, 'no particles yet', c.w / 2, c.h / 2, C.muted, 'center'); return; }
+    c.clip(); const g = c.g; const step = function (w, col, fill) {
+      g.beginPath(); g.moveTo(c.fx(m.d[0] * 1e9 / Math.pow(2, 0.1)), c.fy(0));
+      for (let i = 0; i < m.nb; i++) { const a = m.d[i] * 1e9 / Math.pow(2, 0.1), b = m.d[i] * 1e9 * Math.pow(2, 0.1); g.lineTo(c.fx(a), c.fy(w[i])); g.lineTo(c.fx(b), c.fy(w[i])); }
+      g.lineTo(c.fx(m.d[m.nb - 1] * 1e9 * 1.2), c.fy(0)); if (fill) { g.fillStyle = fill; g.fill(); } g.strokeStyle = col; g.lineWidth = 1.6; g.stroke();
+    };
+    step(wv, C.lig, rgba(C.lig, 0.22)); step(wi, C.water, null);
+    const dz = m.dls(N).z * 1e9; g.setLineDash([4, 3]); g.strokeStyle = C.ink; g.lineWidth = 1.2; g.beginPath(); g.moveTo(c.fx(dz), c.pad.t); g.lineTo(c.fx(dz), c.h - c.pad.b); g.stroke();
+    g.strokeStyle = C.bad; g.beginPath(); g.moveTo(c.fx(m.dPrim * 1e9), c.pad.t); g.lineTo(c.fx(m.dPrim * 1e9), c.h - c.pad.b); g.stroke(); g.setLineDash([]); c.unclip();
+    label(c, 'Z-avg ' + fmt(dz, 0) + ' nm', c.fx(dz) + 5, c.pad.t + 14, C.ink); label(c, 'primary', c.fx(m.dPrim * 1e9) - 4, c.pad.t + 28, C.bad, 'right');
+    label(c, 'volume', c.w - c.pad.r - 4, c.pad.t + 14, C.lig, 'right'); label(c, 'DLS (d⁶)', c.w - c.pad.r - 4, c.pad.t + 28, C.water, 'right');
+  }
+  function chartTime() {
+    const sim = ST.sim, h = sim.hist, zs = h.map(function (a) { return a.z; }).filter(isFinite);
+    const zmax = zs.length ? Math.max.apply(null, zs) : 100, zmin = zs.length ? Math.min.apply(null, zs) : 10;
+    const c = plot($('c-time'), { x: [0, Math.max(sim.T, 1)], y: [Math.pow(10, Math.floor(Math.log10(Math.max(1, zmin * 0.8)))), Math.pow(10, Math.ceil(Math.log10(Math.max(100, zmax * 1.2))))], ylog: true, y2: 'PDI', xl: 'time, s', yl: 'Z-average, nm' });
+    c.logy = true; c.clip();
+    line(c, h.map(function (a) { return a.t; }), h.map(function (a) { return a.z; }), C.lig, 2);
+    line(c, h.map(function (a) { return a.t; }), h.map(function (a) { return a.pdi; }), C.water, 1.6, [5, 3], c.y2);
+    c.g.strokeStyle = rgba(C.ink, 0.5); c.g.beginPath(); c.g.moveTo(c.fx(sim.t), c.pad.t); c.g.lineTo(c.fx(sim.t), c.h - c.pad.b); c.g.stroke(); c.unclip();
+    label(c, 'Z-average', c.pad.l + 8, c.pad.t + 14, C.lig); label(c, 'PDI', c.pad.l + 8, c.pad.t + 28, C.water);
+  }
+  function chartForce() {
+    const m = ST.model, sim = ST.sim, x = sim.bulk.x;
+    const a = PA(), s = P.soni, Vt = (a.V0 + a.Vadd) * 1e-6, n = a.rpm / 60;
+    const epsStir = a.Np * Math.pow(n, 3) * Math.pow(a.Dbar * 1e-3, 5) / Vt, epsSon = s.f_loc * s.P / (m.rhoL(s.x) * s.V * 1e-6);
+    const xs = [], ds = []; for (let i = 0; i < 160; i++) { const d = 1.5 * Math.pow(2000, i / 159); ds.push(d); xs.push(d); }
+    const c = plot($('c-force'), { x: [1.5, 3000], y: [0.1, 1e6], xlog: true, ylog: true, xl: 'aggregate diameter, nm', yl: 'stress, Pa' }); c.logy = true; c.clip();
+    const sig = ds.map(function (d) { return m.strength(d * 1e-9); }), t1 = ds.map(function (d) { return m.stress(d * 1e-9, epsStir, x); }), t2 = ds.map(function (d) { return m.stress(d * 1e-9, epsSon, s.x); });
+    const g = c.g; g.fillStyle = rgba(C.bad, 0.12); g.beginPath(); let started = false;
+    ds.forEach(function (d, i) { if (d > m.dPrim * 1e9 && t2[i] > sig[i]) { if (!started) { g.moveTo(c.fx(d), c.fy(sig[i])); started = true; } g.lineTo(c.fx(d), c.fy(t2[i])); } });
+    for (let i = ds.length - 1; i >= 0; i--) if (ds[i] > m.dPrim * 1e9 && t2[i] > sig[i]) g.lineTo(c.fx(ds[i]), c.fy(sig[i])); g.fill();
+    line(c, xs, sig.map(function (v, i) { return ds[i] <= m.dPrim * 1e9 ? NaN : v; }), C.lig, 2.4);
+    line(c, xs, t1, C.water, 1.8, [6, 4]); line(c, xs, t2, C.bad, 1.8);
+    g.strokeStyle = rgba(C.lig, 0.8); g.setLineDash([2, 3]); g.beginPath(); g.moveTo(c.fx(m.dPrim * 1e9), c.pad.t); g.lineTo(c.fx(m.dPrim * 1e9), c.h - c.pad.b); g.stroke(); g.setLineDash([]); c.unclip();
+    label(c, 'aggregate strength', c.pad.l + 8, c.pad.t + 14, C.lig); label(c, 'sonication stress', c.pad.l + 8, c.pad.t + 28, C.bad); label(c, 'stir bar stress', c.pad.l + 8, c.pad.t + 42, C.water);
+    const d1 = critSize(epsStir, x), d2 = critSize(epsSon, s.x);
+    $('p-force').textContent = 'Stir bar (ε ' + sigf(epsStir, 2) + ' W/kg): ' + (d1 ? 'breaks aggregates above ' + fmt(d1 * 1e9, 0) + ' nm' : 'never exceeds aggregate strength') + '. Sonication (ε ' + sigf(epsSon, 2) + ' W/kg): ' + (d2 ? 'breaks aggregates above ' + fmt(d2 * 1e9, 0) + ' nm' : 'never exceeds aggregate strength') + '.';
+  }
+  function drawCharts() { chartSol(); chartPSD(); chartTime(); chartForce(); }
+
+  /* ------------------------------------------------------------------ comparison table */
+  function summary() {
+    ST.cmp = ST.solvents.map(function (s) { return { id: s.id, name: s.name, sol: s, model: new Model(P, s, ST.curves[s.id] || null, true) }; });
+  }
+  function drawTable() {
+    const a = P.anti, xEnd = a.Vadd / (a.V0 + a.Vadd), n = a.rpm / 60, eps = a.Np * Math.pow(n, 3) * Math.pow(a.Dbar * 1e-3, 5) / ((a.V0 + a.Vadd) * 1e-6);
+    let h = '<thead><tr><th>Solvent</th><th>Solubility source</th><th class="num">ΔΔG to solvent, kcal/mol</th><th class="num">c_sat neat, mg/mL</th><th class="num">Water fraction at saturation</th><th class="num">Peak S in bulk (if nothing precipitates)</th><th class="num">Peak S in plume</th><th class="num">Plume mixing, ms</th><th class="num">Simulated Z-avg, nm</th><th class="num">PDI</th></tr></thead><tbody>';
+    ST.cmp.forEach(function (e) {
+      const m = e.model, xc = m.xCrit(a.c0), sm = m.sMax(a.c0, xEnd), b = ST.batch[e.id];
+      const dd = m.source === 'cosmo' ? P.dG[e.id] - P.dG.water : null, xm = xc == null ? 0.5 : xc, tm = 17.3 * Math.sqrt(m.nu(xm) / eps) * 1e3;
+      h += '<tr data-id="' + e.id + '"' + (e.id === ST.solId ? ' class="sel"' : '') + '><td>' + e.name + '</td><td>' + (m.source === 'cosmo' ? 'COSMO-RS' : m.source === 'curve' ? 'your curve' : 'HSP') + '</td><td class="num">' + (dd == null ? '–' : fmt(dd, 2)) + '</td><td class="num">' + sigf(m.csat(0), 2) + '</td><td class="num">' + (xc == null ? 'never' : xc === 0 ? 'insoluble at c0' : fmt(xc, 2)) + '</td><td class="num">' + sigf(sm, 2) + '</td><td class="num">' + sigf(m.sMax(a.c0, 1), 2) + '</td><td class="num">' + sigf(tm, 2) + '</td><td class="num">' + (b ? b.z : '') + '</td><td class="num">' + (b ? b.pdi : '') + '</td></tr>';
+    });
+    $('cmpTable').innerHTML = h + '</tbody>';
+  }
+  function runBatch() {
+    const btn = $('btnBatch'); btn.disabled = true; ST.batch = {}; let i = 0;
+    const list = ST.cmp.slice(), a = Object.assign({}, P.anti);
+    a.Vdrop = Math.max(a.Vdrop, a.Vadd * 1000 / 40); a.thold = Math.min(a.thold, 60);
+    const xEnd = a.Vadd / (a.V0 + a.Vadd);
+    function next() {
+      if (i >= list.length) { btn.disabled = false; $('batchMsg').textContent = 'Done. Coarse drops (about 40) and 60 s hold, so values differ slightly from a full run.'; drawTable(); return; }
+      const e = list[i++]; $('batchMsg').textContent = 'Simulating ' + e.name + ' (' + i + '/' + list.length + ')';
+      const lm = e.model;
+      if (lm.csat(0) < a.c0) { ST.batch[e.id] = { z: 'not dissolved', pdi: '' }; return setTimeout(next, 0); }
+      if (lm.sMax(a.c0, 1) < 1) { ST.batch[e.id] = { z: 'no precipitation', pdi: '' }; drawTable(); return setTimeout(next, 0); }
+      const model = new Model(P, e.sol, ST.curves[e.id] || null), sim = new Sim(model, 'anti', a);
+      (function loop() { sim.advance(30, 1e12); if (!sim.done) return setTimeout(loop, 0); const r = sim.result(); ST.batch[e.id] = { z: fmt(r.z, 0), pdi: fmt(r.pdi, 2) }; drawTable(); setTimeout(next, 0); })();
+    }
+    next();
+  }
+
+  /* ------------------------------------------------------------------ main loop and events */
+  let last = performance.now();
+  function frame(ts) {
+    const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+    if (ST.sim) {
+      if (ST.running && !ST.sim.done) {
+        ST.simTarget = Math.max(ST.simTarget, ST.sim.t) + ST.speed * dt;
+        ST.sim.advance(10, ST.simTarget);
+        if (ST.sim.t < ST.simTarget - 1e-9) ST.simTarget = ST.sim.t;
+        if (ST.sim.done) { ST.running = false; updateRunBtn(); }
+      }
+      if (SC.frame++ % 60 === 0) readColors();
+      drawScene(ts, dt);
+      if (ts - ST.lastChart > 140) { drawCharts(); updateTiles(); $('caption').textContent = caption(); ST.lastChart = ts; }
+    }
+    requestAnimationFrame(frame);
+  }
+  function runPause() {
+    const sim = ST.sim; if (sim.done) { makeSim(); }
+    ST.running = !ST.running; updateRunBtn();
+  }
+  function jumpEnd() {
+    ST.running = false; const sim = ST.sim; $('btnEnd').disabled = true;
+    (function loop() { sim.advance(40, 1e12); if (!sim.done) return setTimeout(loop, 0); $('btnEnd').disabled = false; updateRunBtn(); ST.lastChart = 0; })();
+  }
+  function init() {
+    readColors();
+    $('tab-anti').onclick = function () { setMode('anti'); }; $('tab-soni').onclick = function () { setMode('soni'); }; $('tab-acid').onclick = function () { setMode('acid'); };
+    $('btnRun').onclick = runPause; $('btnReset').onclick = function () { makeSim(); updateRunBtn(); ST.lastChart = 0; };
+    $('btnEnd').onclick = jumpEnd; $('btnBatch').onclick = runBatch;
+    $('speed').onchange = function (e) { ST.speed = +e.target.value; }; ST.speed = +$('speed').value;
+    $('btnCarry').onclick = function () {
+      const z = ST.sim.bulk; ST.soniInit = { N: Float64Array.from(z.N), x: z.x, c: z.c, acid: ST.mode === 'acid' }; ST.useCarry = true; P.soni.x = +z.x.toFixed(3); setMode('soni');
+    };
+    $('solSel').onchange = function (e) { ST.solId = e.target.value; buildSolvent(); rebuild(); };
+    $('ligSel').onchange = function (e) { if (e.target.value !== 'custom') { loadLignin(e.target.value); buildLig(); } else L.preset = 'custom'; rebuild(); };
+    $('curveApply').onclick = function () { const pts = parseCurve($('curveTxt').value); if (!pts) { $('curveMsg').textContent = 'Need at least two lines of "x, c_sat" with c_sat > 0.'; return; } ST.curves[ST.solId] = pts; ST.curveText[ST.solId] = $('curveTxt').value; $('curveMsg').textContent = 'Curve in use (' + pts.length + ' points).'; rebuild(); };
+    $('curveClear').onclick = function () { delete ST.curves[ST.solId]; delete ST.curveText[ST.solId]; $('curveTxt').value = ''; $('curveMsg').textContent = ''; rebuild(); };
+    $('cmpTable').addEventListener('click', function (e) { const tr = e.target.closest('tr[data-id]'); if (!tr) return; ST.solId = tr.dataset.id; buildSolvent(); rebuild(); });
+    $('legend').innerHTML = '<span style="--c:var(--lig)">lignin particle (size on log scale)</span><span style="--c:var(--lig-soft)">dissolved chain (curls up as S rises)</span><span style="--c:var(--water)">antisolvent plume</span>';
+    new MutationObserver(function () { readColors(); ST.lastChart = 0; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { readColors(); ST.lastChart = 0; });
+    buildLig(); buildPhys(); buildSolvent(); buildProc();
+    $('ligSel').value = 'DL';
+    rebuild();
+    requestAnimationFrame(frame);
+  }
+  init();
+  window.__LNP = { ST: ST, P: P, rebuild: rebuild };
+})();
+</script>
+<footer style="max-width:1640px;margin:0 auto;padding:0 20px;color:var(--muted);font-size:12px">Lignin Nanoparticle Lab v1.0 &middot; Adesanya, T. Z. (University of Illinois Chicago) &middot; MIT License &middot; Model outputs are screening-level estimates; validate against DLS (Z-average, PDI).</footer>
+</body>
+</html>
